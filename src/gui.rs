@@ -51,7 +51,6 @@ fn change_value(
         let val = param.unmodulated_normalized_value();
         let drag = if orientation == Orientation::Vertical { delta.y } else { delta.x };
         setter.set_parameter_normalized(param, val + drag * sensitivity);
-
     }
 }
 
