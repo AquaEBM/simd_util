@@ -5,10 +5,14 @@ pub fn find_remove<T: Eq>(vec: &mut Vec<T>, object: &T) {
 
 pub fn has_duplicates<T: Eq>(slice: &[T]) -> bool {
 
-    slice
-        .iter()
-        .enumerate()
-        .all(|(i, e)| slice.iter().position(|el| el == e).unwrap() == i)
+    for (i, e) in slice.iter().enumerate() {
+        for (j, o) in slice.iter().enumerate() {
+            if o == e && i != j {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 pub fn permute<T>(slice: &mut [T], indices: &mut [usize]) {
