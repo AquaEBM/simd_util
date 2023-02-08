@@ -40,9 +40,15 @@ impl<I, D> AudioGraphNode<I, D> {
     pub fn edges(&self) -> &[Edge] { &self.edges }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct AudioGraph<I, D> {
     ordered_nodes: Vec<AudioGraphNode<I, D>>,
+}
+
+impl<I, D> Default for AudioGraph<I, D> {
+    fn default() -> Self {
+        Self { ordered_nodes: vec![] }
+    }
 }
 
 impl<I, D> Deref for AudioGraph<I, D> {
