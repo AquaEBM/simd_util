@@ -1,32 +1,9 @@
-use nih_plug_egui::egui::*;
-use epaint::PathShape;
+use super::*;
+use epaint::{Shape, PathShape};
 use plot::Plot;
-use crate::{util::*, parameter::Parameter};
+use crate::parameter::Parameter;
+use util::{param_tooltip, animate_draggable};
 use std::{f32::consts::PI, ops::Range, hash::Hash};
-
-pub struct TooltipConfig {
-    pub bg_col: Color32,
-    pub text_col: Color32,
-    pub border_stroke: Stroke,
-    pub font: FontId,
-    pub position: Align2,
-    pub offset: f32,
-    pub show_name: bool
-}
-
-impl Default for TooltipConfig {
-    fn default() -> Self {
-        TooltipConfig {
-            bg_col: Color32::from_rgb(20, 20, 20),
-            text_col: Color32::LIGHT_GRAY,
-            border_stroke: Stroke::new(0.5, Color32::WHITE),
-            font: FontId { size: 18., family: FontFamily::Proportional },
-            position: Align2::CENTER_BOTTOM,
-            offset: 5.,
-            show_name: true,
-        }
-    }
-}
 
 pub trait DraggableWidget {
 
