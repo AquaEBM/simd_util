@@ -11,12 +11,12 @@ pub trait Processor: Send {
 }
 
 #[derive(Default)]
-pub struct AudioGraph {
+pub struct ProcessSchedule {
     nodes: Vec<AudioGraphNode>,
     edges: Vec<Vec<usize>>,
 }
 
-impl Processor for AudioGraph {
+impl Processor for ProcessSchedule {
 
     fn add_voice(&mut self, norm_freq: f32) {
 
@@ -61,7 +61,7 @@ impl Processor for AudioGraph {
     }
 }
 
-impl AudioGraph {
+impl ProcessSchedule {
     pub fn push(&mut self, processor: Box<dyn Processor>, successors: Vec<usize>) {
         self.nodes.push(processor.into());
         self.edges.push(successors);
