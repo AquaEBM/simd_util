@@ -3,7 +3,7 @@
 
 pub mod dsp;
 pub mod util;
-pub mod widgets;
+pub mod gui;
 
 pub mod parameter;
 

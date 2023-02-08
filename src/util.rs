@@ -1,7 +1,7 @@
 
 
 use nih_plug_egui::egui::*;
-use crate::widgets::TooltipConfig;
+use crate::gui::widgets::TooltipConfig;
 
 pub fn find_remove<T: Eq>(vec: &mut Vec<T>, object: &T) {
     let pos = vec.iter().position(|e| e == object).unwrap();
