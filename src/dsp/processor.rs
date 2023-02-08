@@ -11,7 +11,7 @@ pub trait Processor: Send {
 }
 
 #[derive(Default)]
-pub struct ProcessSchedule {
+pub struct ProcessSchedule { 
     nodes: Vec<ProcessComponent>,
     edges: Vec<Vec<usize>>,
 }
