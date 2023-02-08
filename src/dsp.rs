@@ -1,5 +1,5 @@
 pub mod sample;
-pub mod processor;
+pub mod graph;
 
 /// 2 ^ (1/12)
 const SEMITONE: f32 = 1.0594630943592953;
