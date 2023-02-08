@@ -1,5 +1,4 @@
 #![feature(core_intrinsics)]
-#![feature(portable_simd)]
 
 pub mod dsp;
 pub mod util;
