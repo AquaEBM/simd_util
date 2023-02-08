@@ -12,7 +12,7 @@ pub trait Processor: Send {
 
 #[derive(Default)]
 pub struct ProcessSchedule {
-    nodes: Vec<AudioGraphNode>,
+    nodes: Vec<ProcessComponent>,
     edges: Vec<Vec<usize>>,
 }
 
@@ -68,12 +68,12 @@ impl ProcessSchedule {
     }
 }
 
-pub struct AudioGraphNode {
+pub struct ProcessComponent {
     processor: Box<dyn Processor>,
     sample_buffer: ArrayVec<StereoSample, 16>,
 }
 
-impl From<Box<dyn Processor>> for AudioGraphNode {
+impl From<Box<dyn Processor>> for ProcessComponent {
     fn from(processor: Box<dyn Processor>) -> Self {
         Self {
             processor,
@@ -82,7 +82,7 @@ impl From<Box<dyn Processor>> for AudioGraphNode {
     }
 }
 
-impl AudioGraphNode {
+impl ProcessComponent {
 
     pub fn process(&mut self) {
         self.processor.process(&mut self.sample_buffer);
