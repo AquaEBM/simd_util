@@ -1,7 +1,6 @@
 use std::{ops::{Deref, DerefMut}, borrow::Borrow};
 use crate::util::{find_remove, permute};
 
-
 fn position(edges: &[Edge], index: &usize) -> Option<usize> {
     edges.iter().position(|(Edge::Normal(i) | Edge::Feedback(i))| i == index)
 }
