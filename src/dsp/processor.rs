@@ -1,5 +1,4 @@
-use arrayvec::ArrayVec;
-use super::sample::*;
+use std::{ops::{Deref, DerefMut}, borrow::Borrow};
 
 pub fn find_remove<T: Eq>(vec: &mut Vec<T>, object: &T) {
     let pos = vec.iter().position(|e| e == object).unwrap();
