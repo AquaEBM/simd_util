@@ -1,43 +1,6 @@
 use std::{ops::{Deref, DerefMut}, borrow::Borrow};
+use crate::util::{find_remove, permute};
 
-pub fn find_remove<T: Eq>(vec: &mut Vec<T>, object: &T) {
-    let pos = vec.iter().position(|e| e == object).unwrap();
-    vec.remove(pos);
-}
-
-pub fn has_duplicates<T: Eq + Clone>(slice: &[T]) -> bool {
-
-    let mut visited = Vec::new();
-    
-    slice.iter().any(|e| {
-        let dup = visited.contains(e);
-        visited.push(e.clone());
-        dup
-    })
-}
-
-pub fn permute<T>(slice: &mut [T], indices: &mut [usize]) {
-
-    assert_eq!(slice.len(), indices.len(), "slices must have the same length");
-    assert!(!has_duplicates(indices), "indices must not have duplicates");
-    assert!(indices.iter().all(|&i| i < indices.len()), "all indices must be valid");
-
-    for i in 0..indices.len() {
-
-        let mut current = i;
-
-        while i != indices[current] {
-
-            let next = indices[current];
-            slice.swap(current, next);
-
-            indices[current] = current;
-            current = next;
-        }
-
-        indices[current] = current;
-    }
-}
 
 fn position(edges: &[Edge], index: &usize) -> Option<usize> {
     edges.iter().position(|(Edge::Normal(i) | Edge::Feedback(i))| i == index)
