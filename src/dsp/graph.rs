@@ -2,11 +2,9 @@ use std::{ops::{Deref, DerefMut}, borrow::Borrow};
 use crate::util::{find_remove, permute};
 
 
-            if edges.is_empty() {
-                independent_nodes.push(next_node);
-            }
-        }
-    }
+fn position(edges: &[Edge], index: &usize) -> Option<usize> {
+    edges.iter().position(|(Edge::Normal(i) | Edge::Feedback(i))| i == index)
+}
 
     incoming_edges.iter().all(Vec::is_empty).then_some(new_order)
 }
