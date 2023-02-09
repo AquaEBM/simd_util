@@ -121,8 +121,7 @@ impl<I, D> AudioGraph<I, D> {
     }
 
     pub fn top_level_insert(&mut self, id: I, data: D) {
-        self.edges_mut().for_each(|edge| *edge += 1);
-        self.ordered_nodes.insert(0, AudioGraphNode::new(id, data));
+        self.ordered_nodes.push(AudioGraphNode::new(id, data));
     }
 
     fn try_connect_indexes(&mut self, from: usize, to: usize) -> bool {
