@@ -1,37 +1,6 @@
-use std::borrow::Borrow;
-use crate::util::find_remove;
+use std::{ops::{Deref, DerefMut}, borrow::Borrow};
+use crate::util::{find_remove, permute};
 
-/// Implementation of graph topological sort using Kahn's Algorithm
-fn topological_sort(mut nodes: Vec<Vec<usize>>) -> Option<Vec<usize>> {
-
-    let mut incoming_edges = vec![vec![] ; nodes.len()];
-    for (node, node_edges) in nodes.iter().enumerate() {
-        for &edge in node_edges {
-            incoming_edges[edge].push(node);
-        }
-    }
-
-    let mut independent_nodes = Vec::from_iter(
-        incoming_edges.iter()
-            .enumerate()
-            .filter_map(
-                |(i, edges)| {
-                    edges.is_empty().then_some(i)
-                }
-            )
-    );
-
-    let mut new_order = Vec::with_capacity(nodes.len());
-
-    while let Some(node) = independent_nodes.pop() {
-
-        new_order.push(node);
-
-        while let Some(next_node) = nodes[node].pop() {
-
-            let edges = &mut incoming_edges[next_node];
-
-            find_remove(edges, &node);
 
             if edges.is_empty() {
                 independent_nodes.push(next_node);
