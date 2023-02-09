@@ -9,6 +9,47 @@ fn contains(edges: &[Edge], index: &usize) -> bool {
     position(edges, index).is_some()    
 }
 
+/// Implementation of graph topological sort using Kahn's Algorithm
+fn topological_sort(mut nodes: Vec<Vec<usize>>) -> Option<Vec<usize>> {
+
+    let mut incoming_edges = vec![vec![] ; nodes.len()];
+    for (node, node_edges) in nodes.iter().enumerate() {
+        for &edge in node_edges {
+            incoming_edges[edge].push(node);
+        }
+    }
+
+    let mut independent_nodes = Vec::from_iter(
+        incoming_edges.iter()
+            .enumerate()
+            .filter_map(
+                |(i, edges)| {
+                    edges.is_empty().then_some(i)
+                }
+            )
+    );
+
+    let mut new_ordering = Vec::with_capacity(nodes.len());
+
+    while let Some(i) = independent_nodes.pop() {
+
+        new_ordering.push(i);
+
+        while let Some(next) = nodes[i].pop() {
+
+            let edges = &mut incoming_edges[next];
+
+            find_remove(edges, &i);
+
+            if edges.is_empty() {
+                independent_nodes.push(next);
+            }
+        }
+    }
+
+    incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Edge {
     Normal(usize),
@@ -23,6 +64,13 @@ impl Edge {
         };
 
         *self = Self::Feedback(*i);
+    }
+
+    pub fn index_if_normal(&self) -> Option<usize> {
+        match self {
+            &Edge::Normal(i) => Some(i),
+            _ => None,
+        }
     }
 }
 
@@ -77,60 +125,13 @@ impl<I, D> AudioGraph<I, D> {
         self.ordered_nodes.insert(0, AudioGraphNode::new(id, data));
     }
 
-    fn connect_indexes(&mut self, from: usize, to: usize) {
-        if !contains(self[from].edges(), &to) {
+    fn try_connect_indexes(&mut self, from: usize, to: usize) -> bool {
+        let no_duplicates = !contains(self[from].edges(), &to);
+        if no_duplicates {
             self[from].edges.push(Edge::Normal(to));
         }
-    }
 
-    /// Implementation of graph topological sort using Kahn's Algorithm
-    fn topological_sort(&self) -> Option<Vec<usize>> {
-
-        let mut outgoing_edges = Vec::from_iter(
-            self.ordered_nodes.iter().map(|node| Vec::from_iter(
-                node.edges().iter().filter_map(|edge| match edge {
-                    Edge::Normal(i) => Some(*i),
-                    _ => None,
-                })
-            ))
-        );
-
-        let mut incoming_edges = vec![vec![] ; self.ordered_nodes.len()];
-        for (node, node_edges) in outgoing_edges.iter().enumerate() {
-            for &edge in node_edges {
-                incoming_edges[edge].push(node);
-            }
-        }
-
-        let mut independent_nodes = Vec::from_iter(
-            incoming_edges.iter()
-                .enumerate()
-                .filter_map(
-                    |(i, edges)| {
-                        edges.is_empty().then_some(i)
-                    }
-                )
-        );
-
-        let mut new_ordering = Vec::with_capacity(self.ordered_nodes.len());
-
-        while let Some(node) = independent_nodes.pop() {
-
-            new_ordering.push(node);
-
-            while let Some(next_node) = outgoing_edges[node].pop() {
-
-                let edges = &mut incoming_edges[next_node];
-
-                find_remove(edges, &node);
-
-                if edges.is_empty() {
-                    independent_nodes.push(next_node);
-                }
-            }
-        }
-
-        incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering)
+        no_duplicates
     }
 
     fn reorder(&mut self, indices: &mut [usize]) {
@@ -150,7 +151,7 @@ impl<I, D> AudioGraph<I, D> {
         self.iter().position(|node| node.id.borrow() == node_id).unwrap()
     }
 
-    pub fn connect<Q>(&mut self, from_id: &Q, to_id: &Q)
+    pub fn connect<Q>(&mut self, from_id: &Q, to_id: &Q) -> Option<((usize, usize), Option<Vec<usize>>)>
     where
         I: Borrow<Q>,
         Q: Eq + ?Sized,
@@ -158,14 +159,30 @@ impl<I, D> AudioGraph<I, D> {
         let from_index = self.find_node(from_id);
         let to_index = self.find_node(to_id);
 
-        self.connect_indexes(from_index, to_index);
+        let mut result = if self.try_connect_indexes(from_index, to_index) {
+           Some(((from_index, to_index), None))
+        } else {
+            return None;
+        };
 
-        if let Some(mut indices) = self.topological_sort() {
+        if let Some(indices) = topological_sort(
+            // all non-feedback edges
+            self.ordered_nodes
+                .iter()
+                .map(|node| node.edges()
+                    .iter()
+                    .filter_map(Edge::index_if_normal)
+                    .collect()
+                ).collect()
+        ) {
 
-            self.reorder(&mut indices);
+            self.reorder(&mut indices.clone());
+            result.as_mut().unwrap().1 = Some(indices);
 
         } else {
             self[from_index].edges.last_mut().unwrap().set_as_feedback();
         }
+
+        result
     }
 }
