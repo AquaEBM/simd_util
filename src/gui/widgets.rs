@@ -54,8 +54,7 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
 
         let ctx = ui.ctx();
 
-        let response_id = response.id;
-        let param_id = param.id().unwrap_or(response_id);
+        let param_id = param.id().unwrap_or(response.id);
 
         if response.double_clicked() {
             param.begin_automation();
@@ -70,7 +69,7 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
         }
 
         let delta = response.drag_delta();
-        
+
         if delta != Vec2::ZERO {
 
             let scaled_delta = widget.drag_sensitivity() * delta * vec2(1., -1.) / rect.size();
@@ -93,10 +92,11 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
         }
 
         let smoothed_norm_val = ctx.animate_value_with_time(
-            response_id,
+            param_id,
             param.get_normalized_value(),
             0.05
         );
+
         let name = param.name();
 
         println!("{name}: {}", smoothed_norm_val);

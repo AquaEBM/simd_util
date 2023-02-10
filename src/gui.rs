@@ -1,7 +1,11 @@
 pub mod widgets;
 pub mod util;
 
-use nih_plug_egui::egui::{Color32, Stroke, FontId, Align2, FontFamily, Painter, Rect, Vec2, vec2, Rounding, Align, Response, pos2, Widget, Ui, epaint, Sense, LayerId, Order, plot};
+use nih_plug_egui::egui::{
+    Color32, Stroke, FontId, Align2, FontFamily, Painter, Rect,
+    Vec2, vec2, Rounding, Align, Response, pos2, Widget, Ui,
+    epaint, Sense, LayerId, Order, plot
+};
 
 pub struct TooltipConfig {
     pub bg_col: Color32,
