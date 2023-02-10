@@ -69,17 +69,21 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             param.end_automation();
         }
 
-        let param_norm_val = param.get_normalized_value();
-
-        let delta = widget.drag_sensitivity() * response.drag_delta() * vec2(1., -1.) / rect.size();
-        let diff = delta[widget.orientation() as usize];
-        let dragged = diff != 0.;
+        let delta = response.drag_delta();
         
-        if dragged {
+        if delta != Vec2::ZERO {
+
+            let scaled_delta = widget.drag_sensitivity() * delta * vec2(1., -1.) / rect.size();
+            let diff = scaled_delta[widget.orientation() as usize];
+
+            println!("{}", delta == Vec2::ZERO);
 
             let mut data = ctx.data();
 
-            let cached_norm_val = data.get_temp_mut_or(param_id, param_norm_val);
+            let cached_norm_val = data.get_temp_mut_or_insert_with(
+                param_id,
+                || param.get_normalized_value()
+            );
 
             let new_val = (*cached_norm_val + diff).clamp(0., 1.);
 
@@ -90,7 +94,11 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             response.mark_changed();
         }
 
-        let smoothed_norm_val = ctx.animate_value_with_time(response_id, param_norm_val, 0.05);
+        let smoothed_norm_val = ctx.animate_value_with_time(
+            response_id,
+            param.get_normalized_value(),
+            0.05
+        );
 
         let tooltip_options = widget.tooltip_options();
 
