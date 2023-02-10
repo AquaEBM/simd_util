@@ -83,8 +83,6 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
                 || param.get_normalized_value()
             );
 
-            println!("{}", cached_norm_val);
-
             let new_val = (*cached_norm_val + diff).clamp(0., 1.);
 
             *cached_norm_val = new_val;
@@ -99,6 +97,8 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             param.get_normalized_value(),
             0.05
         );
+
+        println!("{}", smoothed_norm_val);
 
         let tooltip_options = widget.tooltip_options();
 
