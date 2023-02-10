@@ -13,7 +13,7 @@ pub trait Processor: Send {
 #[derive(Default)]
 pub struct ProcessSchedule { 
     nodes: Vec<ProcessComponent>,
-    edges: Vec<Vec<usize>>,
+    pub edges: Vec<Vec<usize>>,
 }
 
 impl Processor for ProcessSchedule {
