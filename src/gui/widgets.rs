@@ -76,14 +76,14 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             let scaled_delta = widget.drag_sensitivity() * delta * vec2(1., -1.) / rect.size();
             let diff = scaled_delta[widget.orientation() as usize];
 
-            println!("{}", delta == Vec2::ZERO);
-
             let mut data = ctx.data();
 
             let cached_norm_val = data.get_temp_mut_or_insert_with(
                 param_id,
                 || param.get_normalized_value()
             );
+
+            println!("{}", cached_norm_val);
 
             let new_val = (*cached_norm_val + diff).clamp(0., 1.);
 
