@@ -97,10 +97,6 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             0.05
         );
 
-        let name = param.name();
-
-        println!("{name}: {}", smoothed_norm_val);
-
         let tooltip_options = widget.tooltip_options();
 
         if ui.is_rect_visible(rect) {
