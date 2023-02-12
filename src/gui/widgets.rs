@@ -387,5 +387,4 @@ pub fn plain_plot(id: impl Hash, x_range: Range<f64>, y_range: Range<f64>) -> Pl
     .include_x(x_range.end)
     .include_y(y_range.start)
     .include_y(y_range.end)
-    .view_aspect(2.)
 }
