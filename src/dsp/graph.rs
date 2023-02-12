@@ -10,7 +10,7 @@ fn contains(edges: &[Edge], index: &usize) -> bool {
 }
 
 /// Implementation of graph topological sort using Kahn's Algorithm
-fn topological_sort(mut nodes: Vec<Vec<usize>>) -> Option<Vec<usize>> {
+fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Vec<usize>> {
 
     let mut incoming_edges = vec![vec![] ; nodes.len()];
     for (node, node_edges) in nodes.iter().enumerate() {
@@ -117,6 +117,7 @@ impl<I, D> AudioGraph<I, D> {
     fn edges_mut(&mut self) -> impl Iterator<Item = &mut usize> {
         self.ordered_nodes.iter_mut()
             .flat_map(|node| node.edges.iter_mut())
+            // that is some cool syntax here
             .map(|(Edge::Normal(i) | Edge::Feedback(i))| i)
     }
 
@@ -133,13 +134,13 @@ impl<I, D> AudioGraph<I, D> {
         no_duplicates
     }
 
-    fn reorder(&mut self, indices: &mut [usize]) {
+    fn reorder(&mut self, indices: Box<[usize]>) {
 
         self.edges_mut().for_each(
             |edge| *edge = indices.iter().position(|i| i == edge).unwrap()
         );
 
-        permute(self, indices);
+        permute(&mut [self], indices);
     }
 
     pub fn find_node<Q>(&mut self, node_id: &Q) -> usize
@@ -175,7 +176,7 @@ impl<I, D> AudioGraph<I, D> {
                 ).collect()
         ) {
 
-            self.reorder(&mut indices.clone());
+            self.reorder(indices.clone().into_boxed_slice());
             result.as_mut().unwrap().1 = Some(indices);
 
         } else {

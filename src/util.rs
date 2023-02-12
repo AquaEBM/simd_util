@@ -15,11 +15,13 @@ pub fn has_duplicates<T: Eq>(slice: &[T]) -> bool {
     false
 }
 
-pub fn permute<T>(slice: &mut [T], indices: &mut [usize]) {
+pub fn permute<T>(slices: &mut [&mut [T]], mut indices: Box<[usize]>) {
 
-    assert_eq!(slice.len(), indices.len(), "slices must have the same length");
-    assert!(!has_duplicates(indices), "indices must not have duplicates");
-    assert!(indices.iter().all(|&i| i < indices.len()), "all indices must be valid");
+    let len = slices.get(0).expect("there must be at least one slice to permute").len();
+    assert!(slices.iter().fold(true, |same_len, slice| same_len && slice.len() == len));
+    assert_eq!(len, indices.len(), "slices must have the same length");
+    assert!(!has_duplicates(&indices), "indices must not have duplicates");
+    assert!(indices.iter().all(|i| i < &len), "all indices must be valid");
 
     for i in 0..indices.len() {
 
@@ -28,7 +30,7 @@ pub fn permute<T>(slice: &mut [T], indices: &mut [usize]) {
         while i != indices[current] {
 
             let next = indices[current];
-            slice.swap(current, next);
+            slices.iter_mut().for_each(|slice| slice.swap(current, next));
 
             indices[current] = current;
             current = next;

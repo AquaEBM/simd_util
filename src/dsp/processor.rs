@@ -1,7 +1,9 @@
+use std::{ops::{Deref, DerefMut}, any::Any};
+
 use arrayvec::ArrayVec;
 use super::sample::*;
 
-pub trait Processor: Send {
+pub trait Processor: Send + Any {
 
     fn add_voice(&mut self, norm_freq: f32);
 
@@ -14,6 +16,20 @@ pub trait Processor: Send {
 pub struct ProcessSchedule { 
     nodes: Vec<ProcessComponent>,
     pub edges: Vec<Vec<usize>>,
+}
+
+impl Deref for ProcessSchedule {
+    type Target = [ProcessComponent];
+
+    fn deref(&self) -> &Self::Target {
+        &self.nodes
+    }
+}
+
+impl DerefMut for ProcessSchedule {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.nodes
+    }
 }
 
 impl Processor for ProcessSchedule {
