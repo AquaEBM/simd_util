@@ -64,7 +64,7 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             *ctx.data().get_temp_mut_or(param_id, default) = default;
 
             param.set_normalized_value(default);
-            
+
             param.end_automation();
         }
 
@@ -72,7 +72,7 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
 
         if delta != Vec2::ZERO {
 
-            let scaled_delta = widget.drag_sensitivity() * delta * vec2(1., -1.) / rect.size();
+            let scaled_delta = widget.drag_sensitivity() / rect.size() * vec2(1., -1.) * delta;
             let diff = scaled_delta[widget.orientation() as usize];
 
             let mut data = ctx.data();
