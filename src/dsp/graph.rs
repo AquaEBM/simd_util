@@ -10,7 +10,7 @@ fn contains(edges: &[Edge], index: &usize) -> bool {
 }
 
 /// Implementation of graph topological sort using Kahn's Algorithm
-fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Vec<usize>> {
+fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Box<[usize]>> {
 
     let mut incoming_edges = vec![vec![] ; nodes.len()];
     for (node, node_edges) in nodes.iter().enumerate() {
@@ -47,7 +47,8 @@ fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Vec<usize>> {
         }
     }
 
-    incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering)
+    assert_eq!(new_ordering.len(), nodes.len());
+    incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering.into_boxed_slice())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -151,7 +152,7 @@ impl<I, D> AudioGraph<I, D> {
         self.iter().position(|node| node.id.borrow() == node_id).unwrap()
     }
 
-    pub fn connect<Q>(&mut self, from_id: &Q, to_id: &Q) -> Option<((usize, usize), Option<Vec<usize>>)>
+    pub fn connect<Q>(&mut self, from_id: &Q, to_id: &Q) -> Option<((usize, usize), Option<Box<[usize]>>)>
     where
         I: Borrow<Q>,
         Q: Eq + ?Sized,
@@ -176,7 +177,7 @@ impl<I, D> AudioGraph<I, D> {
                 ).collect()
         ) {
 
-            self.reorder(indices.clone().into_boxed_slice());
+            self.reorder(indices.clone());
             result.as_mut().unwrap().1 = Some(indices);
 
         } else {
