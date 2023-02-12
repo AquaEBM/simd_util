@@ -15,29 +15,39 @@ pub fn has_duplicates<T: Eq>(slice: &[T]) -> bool {
     false
 }
 
-pub fn permute<T>(slices: &mut [&mut [T]], mut indices: Box<[usize]>) {
+pub trait Permute {
+    fn swap(&mut self, i: usize, n: usize);
+    fn len(&self) -> usize;
 
-    let len = slices.get(0).expect("there must be at least one slice to permute").len();
-    assert!(slices.iter().fold(true, |same_len, slice| same_len && slice.len() == len));
-    assert_eq!(len, indices.len(), "slices must have the same length");
-    assert!(!has_duplicates(&indices), "indices must not have duplicates");
-    assert!(indices.iter().all(|i| i < &len), "all indices must be valid");
+    fn permute(&mut self, mut indices: Box<[usize]>) {
+        let len = self.len();
+        assert_eq!(len, indices.len(), "slices must have the same length");
+        assert!(!has_duplicates(&indices), "indices must not have duplicates");
+        assert!(indices.iter().all(|i| i < &len), "all indices must be valid");
 
-    for i in 0..indices.len() {
+        for i in 0..indices.len() {
 
-        let mut current = i;
+            let mut current = i;
 
-        while i != indices[current] {
+            while i != indices[current] {
 
-            let next = indices[current];
-            slices.iter_mut().for_each(|slice| slice.swap(current, next));
+                let next = indices[current];
+                self.swap(current, next);
+
+                indices[current] = current;
+                current = next;
+            }
 
             indices[current] = current;
-            current = next;
         }
-
-        indices[current] = current;
     }
 }
 
-// TODO  quantized parameter boxes
+impl<T> Permute for [T] {
+    fn swap(&mut self, i: usize, n: usize) {
+        self.swap(i, n);
+    }
+    fn len(&self) -> usize {
+        self.len()
+    }
+}

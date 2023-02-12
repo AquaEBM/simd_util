@@ -1,5 +1,5 @@
 use std::{ops::{Deref, DerefMut}, borrow::Borrow};
-use crate::util::{find_remove, permute};
+use crate::util::{find_remove, Permute};
 
 fn position(edges: &[Edge], index: &usize) -> Option<usize> {
     edges.iter().position(|(Edge::Normal(i) | Edge::Feedback(i))| i == index)
@@ -140,7 +140,7 @@ impl<I, D> AudioGraph<I, D> {
             |edge| *edge = indices.iter().position(|i| i == edge).unwrap()
         );
 
-        permute(&mut [self], indices);
+        self.permute(indices);
     }
 
     pub fn find_node<Q>(&mut self, node_id: &Q) -> usize
