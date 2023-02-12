@@ -85,7 +85,7 @@ impl ProcessSchedule {
 }
 
 pub struct ProcessComponent {
-    processor: Box<dyn Processor>,
+    pub processor: Box<dyn Processor>,
     sample_buffer: ArrayVec<StereoSample, 16>,
 }
 
