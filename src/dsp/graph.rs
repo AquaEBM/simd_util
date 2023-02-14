@@ -90,13 +90,13 @@ impl<D> AudioGraph<D> {
         no_duplicates
     }
 
-    fn reorder(&mut self, indices: &[usize]) {
+    fn reorder(&mut self, mut indices: Box<[usize]>) {
 
         self.edges_mut().for_each(
             |edge| *edge = indices.iter().position(|i| i == edge).unwrap()
         );
 
-        self.permute(indices);
+        self.permute(&mut indices);
     }
 
     pub fn connect(&mut self, from_index: usize, to_index: usize) -> Option<Box<[usize]>> {
@@ -106,7 +106,7 @@ impl<D> AudioGraph<D> {
         }
 
         topological_sort(&self.edges).map(|indices| {
-            self.reorder(&indices);
+            self.reorder(indices.clone());
             indices
         }).or_else(|| {
             self.edges[from_index].pop();

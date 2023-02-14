@@ -20,13 +20,11 @@ pub trait Permute {
     fn swap(&mut self, i: usize, n: usize);
     fn len(&self) -> usize;
 
-    fn permute(&mut self, indices: &[usize]) {
+    fn permute(&mut self, indices: &mut [usize]) {
         let len = self.len();
         assert_eq!(len, indices.len(), "slices must have the same length");
         assert!(!has_duplicates(indices), "indices must not have duplicates");
         assert!(indices.iter().all(|i| i < &len), "all indices must be valid");
-
-        let mut indices = Box::<[usize]>::from(indices);
 
         for i in 0..indices.len() {
 
