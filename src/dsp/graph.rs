@@ -51,6 +51,10 @@ pub struct AudioGraph<D> {
     edges: Vec<Vec<usize>>
 }
 
+impl<D> AudioGraph<D> {
+    pub fn edges(&self) -> &[Vec<usize>] { &self.edges }
+}
+
 impl<D> Default for AudioGraph<D> {
     fn default() -> Self {
         Self { ordered_nodes: vec![], edges: vec![] }
