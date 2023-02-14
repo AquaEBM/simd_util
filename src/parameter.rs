@@ -27,10 +27,11 @@ pub struct Modulable<T, const POLYPHONY: usize> {
 impl<T, const N: usize> From<T> for Modulable<T, N> {
     fn from(param: T) -> Self {
 
-        const ZERO: AtomicF32 = AtomicF32::new(0.);
-
         // AtomicF32 is neither Copy nor Clone so we need to do this.
-        let modulation_buffer = Arc::new(array::from_fn(|_| [ZERO, ZERO]));
+        let modulation_buffer = Arc::new(array::from_fn(|_| [
+            AtomicF32::new(0.),
+            AtomicF32::new(0.)
+        ]));
 
         Self { param, modulation_buffer }
     }

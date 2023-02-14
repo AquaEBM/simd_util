@@ -1,16 +1,10 @@
-use std::{ops::{Deref, DerefMut}, borrow::Borrow};
+use std::{ops::{Deref, DerefMut}};
 use crate::util::{find_remove, Permute};
 
-fn position(edges: &[Edge], index: &usize) -> Option<usize> {
-    edges.iter().position(|(Edge::Normal(i) | Edge::Feedback(i))| i == index)
-}
-
-fn contains(edges: &[Edge], index: &usize) -> bool {
-    position(edges, index).is_some()    
-}
-
 /// Implementation of graph topological sort using Kahn's Algorithm
-fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Box<[usize]>> {
+fn topological_sort(nodes: &[Vec<usize>]) -> Option<Box<[usize]>> {
+
+    let mut nodes = nodes.to_vec();
 
     let mut incoming_edges = vec![vec![] ; nodes.len()];
     for (node, node_edges) in nodes.iter().enumerate() {
@@ -51,91 +45,42 @@ fn topological_sort(mut nodes: Box<[Vec<usize>]>) -> Option<Box<[usize]>> {
     incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering.into_boxed_slice())
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum Edge {
-    Normal(usize),
-    Feedback(usize),
+#[derive(Debug, Default)]
+pub struct AudioGraph<D> {
+    ordered_nodes: Vec<D>,
+    edges: Vec<Vec<usize>>
 }
 
-impl Edge {
+impl<D> Deref for AudioGraph<D> {
+    type Target = [D];
 
-    pub fn set_as_feedback(&mut self) {
-        let Self::Normal(i) = self else {
-            panic!("edge is already a feedback edge");
-        };
-
-        *self = Self::Feedback(*i);
-    }
-
-    pub fn index_if_normal(&self) -> Option<usize> {
-        match self {
-            &Edge::Normal(i) => Some(i),
-            _ => None,
-        }
-    }
+    fn deref(&self) -> &Self::Target { &self.ordered_nodes }
 }
 
-#[derive(Debug)]
-pub struct AudioGraphNode<I, D> {
-    pub data: D,
-    id: I,
-    edges: Vec<Edge>,
+impl<D> DerefMut for AudioGraph<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.ordered_nodes }
 }
 
-impl<I, D> AudioGraphNode<I, D> {
-    pub fn new(id: I, data: D) -> Self { Self { data, id, edges: vec![] } }
-    pub fn id(&self) -> &I { &self.id }
-    pub fn edges(&self) -> &[Edge] { &self.edges }
-}
-
-#[derive(Debug)]
-pub struct AudioGraph<I, D> {
-    ordered_nodes: Vec<AudioGraphNode<I, D>>,
-}
-
-impl<I, D> Default for AudioGraph<I, D> {
-    fn default() -> Self {
-        Self { ordered_nodes: vec![] }
-    }
-}
-
-impl<I, D> Deref for AudioGraph<I, D> {
-    type Target = [AudioGraphNode<I, D>];
-
-    fn deref(&self) -> &Self::Target {
-        &self.ordered_nodes
-    }
-}
-
-impl<I, D> DerefMut for AudioGraph<I, D> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ordered_nodes
-    }
-}
-
-impl<I, D> AudioGraph<I, D> {
+impl<D> AudioGraph<D> {
 
     fn edges_mut(&mut self) -> impl Iterator<Item = &mut usize> {
-        self.ordered_nodes.iter_mut()
-            .flat_map(|node| node.edges.iter_mut())
-            // that is some cool syntax here
-            .map(|(Edge::Normal(i) | Edge::Feedback(i))| i)
+        self.edges.iter_mut().flat_map(|edges| edges.iter_mut())
     }
 
-    pub fn top_level_insert(&mut self, id: I, data: D) {
-        self.ordered_nodes.push(AudioGraphNode::new(id, data));
+    pub fn top_level_insert(&mut self, data: D) {
+        self.ordered_nodes.push(data);
     }
 
     fn try_connect_indexes(&mut self, from: usize, to: usize) -> bool {
-        let no_duplicates = !contains(self[from].edges(), &to);
+        let no_duplicates = !self.edges[from].contains(&to);
         if no_duplicates {
-            self[from].edges.push(Edge::Normal(to));
+            self.edges[from].push(to);
         }
 
         no_duplicates
     }
 
-    fn reorder(&mut self, indices: Box<[usize]>) {
+    fn reorder(&mut self, indices: &[usize]) {
 
         self.edges_mut().for_each(
             |edge| *edge = indices.iter().position(|i| i == edge).unwrap()
@@ -144,46 +89,18 @@ impl<I, D> AudioGraph<I, D> {
         self.permute(indices);
     }
 
-    pub fn find_node<Q>(&mut self, node_id: &Q) -> usize
-    where
-        I: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
-        self.iter().position(|node| node.id.borrow() == node_id).unwrap()
-    }
+    pub fn connect(&mut self, from_index: usize, to_index: usize) -> Option<Box<[usize]>> {
 
-    pub fn connect<Q>(&mut self, from_id: &Q, to_id: &Q) -> Option<((usize, usize), Option<Box<[usize]>>)>
-    where
-        I: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
-        let from_index = self.find_node(from_id);
-        let to_index = self.find_node(to_id);
-
-        let mut result = if self.try_connect_indexes(from_index, to_index) {
-           Some(((from_index, to_index), None))
-        } else {
+        if !self.try_connect_indexes(from_index, to_index) {
             return None;
-        };
-
-        if let Some(indices) = topological_sort(
-            // all non-feedback edges
-            self.ordered_nodes
-                .iter()
-                .map(|node| node.edges()
-                    .iter()
-                    .filter_map(Edge::index_if_normal)
-                    .collect()
-                ).collect()
-        ) {
-
-            self.reorder(indices.clone());
-            result.as_mut().unwrap().1 = Some(indices);
-
-        } else {
-            self[from_index].edges.last_mut().unwrap().set_as_feedback();
         }
 
-        result
+        topological_sort(&self.edges).map(|indices| {
+            self.reorder(&indices);
+            indices
+        }).or_else(|| {
+            self.edges[from_index].pop();
+            None
+        })
     }
 }

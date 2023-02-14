@@ -20,7 +20,7 @@ impl StereoSample {
         Self { l: self.l.min(rhs.l), r: self.r.min(rhs.r)}
     }
 
-    pub fn sqrt(self: Self) -> Self {
+    pub fn sqrt(self) -> Self {
         Self { l: self.l.sqrt(), r: self.r.sqrt() }
     }
 

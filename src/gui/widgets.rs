@@ -187,7 +187,7 @@ impl DraggableWidget for Knob {
             Color32::LIGHT_GRAY
         );
         
-        let width = r / 15. * (1.25 + 0.75 * animate_draggable(painter, &response));
+        let width = r / 15. * (1.25 + 0.75 * animate_draggable(painter, response));
         
         painter.circle_filled(knob_center, r * 0.75, Color32::DARK_GRAY);
         let arrow = Vec2::angled(1.5 * PI * (0.5 + norm_val)) * r;
@@ -257,7 +257,7 @@ impl DraggableWidget for HSlider {
 
         let painter = ui.painter();
                 
-        let thickness = 0.15 * (1. - animate_draggable(painter, &response));
+        let thickness = 0.15 * (1. - animate_draggable(painter, response));
         
         let width = rect.width();
         let height = rect.height();
@@ -337,7 +337,7 @@ impl DraggableWidget for VSlider {
 
         let painter = ui.painter();
         
-        let thickness = 0.15 * (1. - animate_draggable(painter, &response));
+        let thickness = 0.15 * (1. - animate_draggable(painter, response));
         
         let height = rect.height();
         let width = rect.width();
