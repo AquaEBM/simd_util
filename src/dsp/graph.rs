@@ -45,10 +45,16 @@ fn topological_sort(nodes: &[Vec<usize>]) -> Option<Box<[usize]>> {
     incoming_edges.iter().all(Vec::is_empty).then_some(new_ordering.into_boxed_slice())
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct AudioGraph<D> {
     ordered_nodes: Vec<D>,
     edges: Vec<Vec<usize>>
+}
+
+impl<D> Default for AudioGraph<D> {
+    fn default() -> Self {
+        Self { ordered_nodes: vec![], edges: vec![] }
+    }
 }
 
 impl<D> Deref for AudioGraph<D> {
