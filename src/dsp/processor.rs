@@ -5,7 +5,7 @@ use crate::util::Permute;
 
 use super::sample::*;
 
-pub trait Processor: Send + Any {
+pub trait Processor: Any {
 
     fn add_voice(&mut self, norm_freq: f32);
 
@@ -91,19 +91,19 @@ impl Processor for ProcessSchedule {
 }
 
 impl ProcessSchedule {
-    pub fn push(&mut self, processor: Box<dyn Processor>, successors: Vec<usize>) {
+    pub fn push(&mut self, processor: Box<dyn Processor + Send>, successors: Vec<usize>) {
         self.nodes.push(processor.into());
         self.edges.push(successors);
     }
 }
 
 pub struct ProcessComponent {
-    pub processor: Box<dyn Processor>,
+    pub processor: Box<dyn Processor + Send>,
     sample_buffer: ArrayVec<StereoSample, 16>,
 }
 
-impl From<Box<dyn Processor>> for ProcessComponent {
-    fn from(processor: Box<dyn Processor>) -> Self {
+impl From<Box<dyn Processor + Send>> for ProcessComponent {
+    fn from(processor: Box<dyn Processor + Send>) -> Self {
         Self {
             processor,
             sample_buffer: Default::default()
