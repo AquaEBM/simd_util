@@ -1,7 +1,6 @@
 #![feature(core_intrinsics)]
 
 pub mod dsp;
-pub mod util;
 pub mod gui;
 
 pub mod parameter;

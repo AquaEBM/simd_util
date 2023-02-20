@@ -1,5 +1,16 @@
 use std::{ops::{Deref, DerefMut}};
-use crate::util::{find_remove, Permute};
+
+pub fn has_duplicates<T: Eq>(slice: &[T]) -> bool {
+
+    for (i, e) in slice.iter().enumerate() {
+        for (j, o) in slice.iter().enumerate() {
+            if o == e && i != j {
+                return true;
+            }
+        }
+    }
+    false
+}
 
 /// Implementation of graph topological sort using Kahn's Algorithm
 fn topological_sort(nodes: &[Vec<usize>]) -> Option<Box<[usize]>> {
@@ -33,7 +44,8 @@ fn topological_sort(nodes: &[Vec<usize>]) -> Option<Box<[usize]>> {
 
             let edges = &mut incoming_edges[next];
 
-            find_remove(edges, &i);
+            let pos = edges.iter().position(|&e| e == i).unwrap();
+            edges.remove(pos);
 
             if edges.is_empty() {
                 independent_nodes.push(next);
@@ -96,21 +108,41 @@ impl<D> AudioGraph<D> {
             |edge| *edge = indices.iter().position(|i| i == edge).unwrap()
         );
 
-        self.permute(&mut indices);
+        let len = self.len();
+        assert_eq!(len, indices.len(), "slices must have the same length");
+        assert!(!has_duplicates(&indices), "indices must not have duplicates");
+        assert!(indices.iter().all(|i| i < &len), "all indices must be valid");
+
+        for i in 0..indices.len() {
+
+            let mut current = i;
+
+            while i != indices[current] {
+
+                let next = indices[current];
+                self.ordered_nodes.swap(current, next);
+                self.edges.swap(current, next);
+
+                indices[current] = current;
+                current = next;
+            }
+
+            indices[current] = current;
+        }
     }
 
-    pub fn connect(&mut self, from_index: usize, to_index: usize) -> Option<Box<[usize]>> {
+    pub fn connect(&mut self, from_index: usize, to_index: usize) -> bool {
 
         if !self.try_connect_indexes(from_index, to_index) {
-            return None;
+            return false;
         }
 
         topological_sort(&self.edges).map(|indices| {
-            self.reorder(indices.clone());
-            indices
-        }).or_else(|| {
+            self.reorder(indices);
+            true
+        }).unwrap_or_else(|| {
             self.edges[from_index].pop();
-            None
+            false
         })
     }
 }

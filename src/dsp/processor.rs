@@ -1,7 +1,6 @@
 use std::{ops::{Deref, DerefMut}, any::Any};
 
 use arrayvec::ArrayVec;
-use crate::util::Permute;
 
 use super::sample::*;
 
@@ -31,17 +30,6 @@ impl Deref for ProcessSchedule {
 impl DerefMut for ProcessSchedule {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.nodes
-    }
-}
-
-impl Permute for ProcessSchedule {
-    fn swap(&mut self, i: usize, n: usize) {
-        self.nodes.swap(i, n);
-        self.edges.swap(i, n);
-    }
-
-    fn len(&self) -> usize {
-        self.nodes.len()
     }
 }
 
