@@ -70,17 +70,17 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
 
         let delta = response.drag_delta();
 
+        let mut data = ctx.data();
+
+        let cached_norm_val = data.get_temp_mut_or_insert_with(
+            param_id,
+            || param.get_normalized_value()
+        );
+
         if delta != Vec2::ZERO {
 
             let scaled_delta = widget.drag_sensitivity() / rect.size() * vec2(1., -1.) * delta;
             let diff = scaled_delta[widget.orientation() as usize];
-
-            let mut data = ctx.data();
-
-            let cached_norm_val = data.get_temp_mut_or_insert_with(
-                param_id,
-                || param.get_normalized_value()
-            );
 
             let new_val = (*cached_norm_val + diff).clamp(0., 1.);
 
@@ -91,22 +91,22 @@ impl<T: DraggableWidget, U: Parameter> Widget for ParamWidget<T, U> {
             response.mark_changed();
         }
 
-        let smoothed_norm_val = ctx.animate_value_with_time(
-            param_id,
-            param.get_normalized_value(),
-            0.05
-        );
-
         let tooltip_options = widget.tooltip_options();
+
+        let current_visible_norm_val = param.preview_nomrmalized(*cached_norm_val);
+
+        drop(cached_norm_val);
+        drop(data);
 
         if ui.is_rect_visible(rect) {
 
-            widget.draw(ui, &mut response, smoothed_norm_val, &param);
+            widget.draw(ui, &mut response, current_visible_norm_val, &param);
         }
+        
 
         if response.dragged() {
 
-            let value_string = param.norm_val_to_string(smoothed_norm_val);
+            let value_string = param.norm_val_to_string(current_visible_norm_val);
 
             let text = if true {
                 format!("{}: {}", param.name(), value_string)

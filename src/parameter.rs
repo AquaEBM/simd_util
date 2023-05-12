@@ -8,6 +8,7 @@ pub trait Parameter {
 
     fn get_normalized_value(&self) -> f32;
     fn set_normalized_value(&self, value: f32);
+    fn preview_nomrmalized(&self, value: f32) -> f32;
 
     fn name(&self) -> &str { "" }
     fn norm_val_to_string(&self, norm_val: f32) -> String {
@@ -77,6 +78,10 @@ where
 
     fn set_normalized_value(&self, value: f32) {
         self.setter.set_parameter_normalized(self.param.deref(), value);
+    }
+
+    fn preview_nomrmalized(&self, value: f32) -> f32 {
+        self.param.preview_normalized(self.param.preview_plain(value))
     }
 
     fn name(&self) -> &str { self.param.name() }
