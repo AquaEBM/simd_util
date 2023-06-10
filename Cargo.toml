@@ -7,8 +7,5 @@ edition = "2021"
 
 [dependencies]
 
-nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git" }
-nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
-atomic_float = "0.1"
-arrayvec = "0.7.2"
-rtrb = "0.2.3"
+core_simd = { git = "https://github.com/rust-lang/portable-simd.git" }
+std_float = { git = "https://github.com/rust-lang/portable-simd.git" }
