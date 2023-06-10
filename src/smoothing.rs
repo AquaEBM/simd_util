@@ -6,21 +6,28 @@ where
     T: SimdElement
 {
     fn set_target(&mut self, target: Simd<T, N>, num_samples: usize);
-    fn next(&mut self) -> Simd<T, N>;
+    fn tick(&mut self);
+    fn current(&self) -> &Simd<T, N>;
 }
 
 pub trait Smoother<T: SimdElement> {
     fn set_target(&mut self, target: T, num_samples: usize);
-    fn next(&mut self) -> T;
+    fn tick(&mut self);
+    fn current(&self) -> &T;
 }
 
 impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
-    fn next(&mut self) -> U {
-        self.next()[0]
+    fn tick(&mut self) {
+        // to avoid ambiguity
+        <Self as SIMDSmoother<U, 1>>::tick(self);
     }
 
     fn set_target(&mut self, target: U, num_samples: usize) {
         self.set_target(Simd::from_array([target]), num_samples);
+    }
+
+    fn current(&self) -> &U {
+        &self.current()[0]
     }
 }
 
@@ -37,7 +44,10 @@ where
     LaneCount<N>: SupportedLaneCount
 {
     fn default() -> Self {
-        Self { factor: Simd::splat(1.), value: Simd::splat(1.) }
+        Self {
+            factor: Simd::splat(1.),
+            value: Simd::splat(1.),
+        }
     }
 }
 
@@ -51,9 +61,12 @@ where
         self.factor = util::map(base, |v| v.powf(exp));
     }
 
-    fn next(&mut self) -> Simd<f32, N> {
+    fn tick(&mut self) {
         self.value *= self.factor;
-        self.value
+    }
+
+    fn current(&self) -> &Simd<f32, N> {
+        &self.value
     }
 }
 
@@ -74,8 +87,11 @@ where
         self.increment = (target - self.value) / Simd::splat(num_samples as f32);
     }
 
-    fn next(&mut self) -> Simd<f32, N> {
+    fn tick(&mut self) {
         self.value += self.increment;
-        self.value
+    }
+
+    fn current(&self) -> &Simd<f32, N> {
+        &self.value
     }
 }
