@@ -4,7 +4,7 @@ use cfg_if::cfg_if;
 #[allow(unused_imports)]
 use std::arch::x86_64::*;
 
-const MAX_VECTOR_WIDTH: usize = {
+pub const MAX_VECTOR_WIDTH: usize = {
     if cfg!(any(target_feature = "avx512f")) {
         16
     } else if cfg!(any(target_feature = "avx")) {
