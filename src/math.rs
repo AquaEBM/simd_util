@@ -8,7 +8,7 @@ where
     (b - a).mul_add(t, a)
 }
 
-/// results in undefined behavior if i is not in [-126 ; 126]
+/// results in undefined behavior if -126 <= i <= 126 doesn't hold
 pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -31,7 +31,7 @@ where
     let d = Simd::splat(LN_2 * LN_2 * LN_2 / 6.);
     let e = Simd::splat(LN_2 * LN_2 * LN_2 * LN_2 / 24.);
 
-    let rounded = a.round();
+    let rounded = v.round();
 
     let int = fexp2i(unsafe { rounded.to_int_unchecked() }); // very cheap
 
