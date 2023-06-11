@@ -73,7 +73,7 @@ where
     log_exponent + y
 }
 
-pub fn flp_tp_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
+pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -81,7 +81,7 @@ where
     unsafe { (x * max).to_int_unchecked() }
 }
 
-pub fn fxp_tp_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
+pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
