@@ -29,6 +29,7 @@ where
     let b = Simd::splat(LN_2);
     let c = Simd::splat(LN_2 * LN_2 / 2.);
     let d = Simd::splat(LN_2 * LN_2 * LN_2 / 6.);
+    let e = Simd::splat(LN_2 * LN_2 * LN_2 * LN_2 / 24.);
 
     let rounded = a.round();
 
@@ -36,7 +37,7 @@ where
 
     let x = v - rounded; // is always in [-0.5 ; 0.5]
 
-    let y = x.mul_add(x.mul_add(x.mul_add(d, c), b), a);
+    let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(e, d), c), b), a);
     int * y
 }
 
