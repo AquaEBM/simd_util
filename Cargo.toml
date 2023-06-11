@@ -9,3 +9,5 @@ edition = "2021"
 
 core_simd = { git = "https://github.com/rust-lang/portable-simd.git" }
 std_float = { git = "https://github.com/rust-lang/portable-simd.git" }
+
+cfg-if = "1.0"

@@ -72,3 +72,19 @@ where
     let y = (x * x).mul_add(x.mul_add(d, c), x);
     log_exponent + y
 }
+
+pub fn flp_tp_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    let max = Simd::splat(u32::MAX as f32);
+    unsafe { (x * max).to_int_unchecked() }
+}
+
+pub fn fxp_tp_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    let ratio = Simd::splat(1. / u32::MAX as f32);
+    x.cast() * ratio
+}
