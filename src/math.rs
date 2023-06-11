@@ -19,8 +19,9 @@ where
 }
 
 /// "cheap" 2 ^ x approximation, results in undefined behavior in case of
-/// NAN, inf or subnormal numbers, taylor series already works pretty well here since
-/// all we need is a polynomial approximation in [-0.5, 0.5]
+/// NAN, inf or subnormal numbers, taylor series already works pretty well since
+/// the polynomial approximation we need here is in the interval (-0.5, 0.5)
+/// (which is small and centered around zero)
 pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
