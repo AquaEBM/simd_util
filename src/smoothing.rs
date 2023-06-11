@@ -58,7 +58,7 @@ where
     fn set_target(&mut self, target: Simd<f32, N>, num_samples: usize) {
         let base = target / self.value;
         let exp = 1. / num_samples as f32;
-        self.factor = util::map(base, |v| v.powf(exp));
+        self.factor = simd_util::map(base, |v| v.powf(exp));
     }
 
     fn tick(&mut self) {
