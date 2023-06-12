@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use super::*;
 
 pub trait SIMDSmoother<T, const N: usize>
@@ -70,6 +72,26 @@ where
     }
 }
 
+impl<const N: usize> Deref for LogSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    type Target = Simd<f32, N>;
+
+    fn deref(&self) -> &Self::Target {
+        self.current()
+    }
+}
+
+impl<const N: usize> DerefMut for LogSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
 #[derive(Default)]
 pub struct LinearSmoother<const N: usize>
 where
@@ -93,5 +115,25 @@ where
 
     fn current(&self) -> &Simd<f32, N> {
         &self.value
+    }
+}
+
+impl<const N: usize> Deref for LinearSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    type Target = Simd<f32, N>;
+
+    fn deref(&self) -> &Self::Target {
+        self.current()
+    }
+}
+
+impl<const N: usize> DerefMut for LinearSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
