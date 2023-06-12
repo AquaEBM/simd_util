@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use super::*;
 
 #[derive(Default)]
@@ -19,11 +21,18 @@ where
         output
     }
 
-    pub fn previous_output(&self) -> Simd<f32, N> {
-        self.s
-    }
-
     pub fn reset(&mut self) {
         self.s = Simd::splat(0.);
+    }
+}
+
+impl<const N: usize> Deref for Integrator<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    type Target = Simd<f32, N>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.s
     }
 }
