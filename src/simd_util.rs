@@ -26,13 +26,13 @@ pub type TMask = Mask<i32, MAX_VECTOR_WIDTH>;
 pub const ZERO_F: Float = const_splat(0.);
 pub const ONE_F: Float = const_splat(1.);
 
-// safety argument for the following two functions:
-// both referred to types have the same size 
-// `vector` has greater alignment that the return type
-// the output reference's lifetime is the same as that of the input
-// so no unbounded lifetimes
-// we are transmuting a vector to an array over the same scalar
-// so values are valid
+// Safety argument for the following two functions:
+//  - both referred to types have the same size 
+//  - the type of `vector` has greater alignment that the return type
+//  - the output reference's lifetime is the same as that of the input
+//  - so no unbounded lifetimes
+//  - we are transmuting a vector to an array over the same scalar
+//  - so values are valid
 
 pub fn as_stereo_sample_array<T: SimdElement>(
     vector: &Simd<T, MAX_VECTOR_WIDTH>
@@ -47,8 +47,6 @@ pub fn as_mut_stereo_sample_array<T: SimdElement>(
 
     unsafe { transmute(vector) }
 }
-
-
 
 pub fn splat_stereo<T: SimdElement>(pair: Simd<T, 2>) -> Simd<T, MAX_VECTOR_WIDTH> {
 
@@ -65,9 +63,9 @@ pub fn splat_stereo<T: SimdElement>(pair: Simd<T, 2>) -> Simd<T, MAX_VECTOR_WIDT
     simd_swizzle!(pair, ZERO_ONE)
 }
 
-// convenience function on simd types when specialized functions aren't
-// available in the standard library, hoping autovectorization compiles this
-// into an simd instruction
+/// Convenience function on simd types when specialized functions aren't
+/// available in the standard library, hoping autovectorization compiles this
+/// into an simd instruction
 
 pub fn map<T: SimdElement, U: SimdElement, const N: usize>(v: Simd<T, N>, f: impl FnMut(T) -> U) -> Simd<U, N>
 where
@@ -87,7 +85,7 @@ where
     Simd::from_array([item ; N])
 }
 
-/// we're using intrinsics for now because u32 gathers aren't in std::simd yet
+// We're using intrinsics for now because u32 gathers aren't in std::simd yet
 pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, or: Float) -> Float {
 
     cfg_if! {
@@ -96,7 +94,7 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
         
             _mm512_mask_i32gather_ps(
                 or.into(),
-                // SAFETY: Mask<T, 16> and __mmask16 (u16) are the same size on AVX-512
+                // Mask<_, 16> and __mmask16 (or u16) are the same size on AVX-512
                 transmute(mask),
                 index.into(),
                 slice.as_ptr().cast(),
@@ -132,7 +130,7 @@ pub unsafe fn gather(slice: &[f32], index: UInt) -> Float {
             _mm256_i32gather_ps(slice.as_ptr(), index.into(), 4).into()
         
         } else {
-            Simd::gather_select_unchecked(slice, Mask::splat(true), index.cast(), const_splat(0.))
+            Simd::gather_select_unchecked(slice, Mask::splat(true), index.cast(), Simd::splat(9.))
         }
     }
 }
