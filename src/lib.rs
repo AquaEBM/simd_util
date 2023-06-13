@@ -1,7 +1,13 @@
 #![feature(portable_simd, stdsimd)]
 
-use core_simd::simd::*;
-use std_float::*;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "non_std_simd")] {
+        use core_simd::simd::*;
+        use std_float::*;
+    } else {
+        use std::simd::*;
+    }
+}
 pub mod smoothing;
 pub mod simd_util;
 pub mod math;
