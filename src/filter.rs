@@ -1,7 +1,8 @@
 use std::ops::Deref;
-pub mod svf;
-
 use super::*;
+
+pub mod svf;
+pub mod one_pole;
 
 #[derive(Default)]
 /// Transposed Direct Form II integrator, dereference to get internal (`z^-1`) state
