@@ -156,6 +156,7 @@ where
         self.lp = self.s[1].process(self.bp, g);
     }
 
+    /// Get the current (smoothed?) value of the internal gain parameter
     pub fn get_gain(&self) -> Simd<f32, N> {
         *self.k
     }
