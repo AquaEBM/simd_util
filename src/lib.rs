@@ -11,7 +11,7 @@ cfg_if::cfg_if! {
     
     } else {
     
-        use std::simd;
+        pub use std::simd;
     }
 }
 
