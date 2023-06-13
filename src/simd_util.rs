@@ -94,8 +94,7 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
         
             _mm512_mask_i32gather_ps(
                 or.into(),
-                // Mask<_, 16> and __mmask16 (or u16) are the same size on AVX-512
-                transmute(mask),
+                mask.to_bitmask(),
                 index.into(),
                 slice.as_ptr().cast(),
                 4,
