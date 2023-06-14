@@ -162,31 +162,32 @@ where
     }
 
     pub fn get_highpass(&self) -> Simd<f32, N> {
-        self.hp
+        *self.k * self.hp
     }
 
     pub fn get_bandpass(&self) -> Simd<f32, N> {
-        self.bp
+        *self.k * self.bp
     }
 
     pub fn get_lowpass(&self) -> Simd<f32, N> {
-        self.lp
+        *self.k * self.lp
     }
 
     pub fn get_bandpass1(&self) -> Simd<f32, N> {
-        *self.r * self.bp
+        *self.r * self.bp * *self.k
     }
 
     pub fn get_allpass(&self) -> Simd<f32, N> {
-        Simd::splat(2.).mul_add(self.get_bandpass1(), -self.x)
+        let bp1 = *self.r * self.bp;
+        *self.k * Simd::splat(2.).mul_add(bp1, -self.x)
     }
 
     pub fn get_notch(&self) -> Simd<f32, N> {
-        self.r.mul_add(-self.bp, self.x)
+        *self.k * self.r.mul_add(-self.bp, self.x)
     }
 
     pub fn get_peaking(&self) -> Simd<f32, N> {
-        self.lp - self.hp
+       *self.k * (self.lp - self.hp)
     }
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
@@ -197,7 +198,7 @@ where
 
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
 
-        let bp1 = self.get_bandpass1();
+        let bp1 = *self.r * self.bp;
         self.k.mul_add(bp1, self.x - bp1)
     }
 
