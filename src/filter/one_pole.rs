@@ -40,7 +40,7 @@ where
     /// 
     /// For a smoothed version of this, see 'Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, k: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff);
+        *self.g = self.pre_gain_from_cutoff(cutoff * k.sqrt());
         *self.k = k;
     }
 
