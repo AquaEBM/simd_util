@@ -40,9 +40,8 @@ where
     /// 
     /// For a smoothed version of this, see 'Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
-        let k = gain.sqrt();
-        *self.g = self.pre_gain_from_cutoff(cutoff * k);
-        *self.k = k;
+        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
+        *self.k = gain;
     }
 
     /// Convenience method to smooth all parameters toward the given values
@@ -59,6 +58,7 @@ where
             self.pre_gain_from_cutoff(k * cutoff),
             block_len
         );
+
         self.k.set_target(k, block_len)
     }
 
