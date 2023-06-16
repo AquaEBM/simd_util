@@ -37,53 +37,17 @@ where
         self.s[1].reset();
     }
 
-    /// _Immediately_ sets the filters cutoff frequency to `cutoff`
-    /// 
-    /// For a version that smooths it towards the given value, see `Self::set_cutoff_smoothed`
-    pub fn set_cutoff(&mut self, cutoff: Simd<f32, N>) {
-        *self.g = map(*self.k * cutoff * self.pi_tick, f32::tan);
-    }
-
-    /// Smoothes the filter's cutoff frequency towards
-    /// `cutoff`, effectively reaching it after `block_len` samples
-    pub fn set_cutoff_smoothed(&mut self, cutoff: Simd<f32, N>, block_len: usize) {
-
-        self.g.set_target(map(cutoff * self.pi_tick, f32::tan), block_len)
-    }
-
-    /// _Immediately_ sets the filters resonance amount to `res`
-    /// 
-    /// For a version that smooths it towards the given value, see `Self::set_resonance_smoothed`
-    pub fn set_resonance(&mut self, res: Simd<f32, N>) {
-        *self.r = res;
-    }
-
-    /// Smoothes the filter's resonance amount towards
-    /// `res`, effectively reaching it after `block_len` samples
-    pub fn set_resonance_smoothed(&mut self, res: Simd<f32, N>, block_len: usize) {
-        self.r.set_target(res, block_len)
-    }
-
-    /// _Immediately_ sets the filters gain to `k`
-    /// 
-    /// For a version that smooths it towards the given value, see `Self::set_gain_smoothed`
-    pub fn set_shelving_gain(&mut self, k: Simd<f32, N>) {
-        *self.k = k;
-    }
-
-    /// Smoothes the filter's gain towards
-    /// `k`, effectively reaching it after `block_len` samples
-    pub fn set_shelving_gain_smoothed(&mut self, k: Simd<f32, N>, block_len: usize) {
-        self.k.set_target(k, block_len)
+    pub fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
+        map(cutoff * self.pi_tick, f32::tan)
     }
 
     /// Convenience method to _immediately_ set all parameters
     /// 
     /// For a smoothed version of this, see `Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.set_cutoff(cutoff);
-        self.set_shelving_gain(gain);
-        self.set_resonance(res);
+        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
+        *self.k = gain;
+        *self.r = res;
     }
 
     /// Convenience method to smooth all parameters toward the given values
@@ -95,36 +59,9 @@ where
         gain: Simd<f32, N>,
         block_len: usize,
     ) {
-        self.set_cutoff_smoothed(cutoff, block_len);
-        self.set_resonance_smoothed(res, block_len);
-        self.set_shelving_gain_smoothed(gain, block_len);
-    }
-
-    /// Updates the cutoff parameter smoother.
-    /// 
-    /// After calling `Self::set_cutoff_smoothed(value, num_samples)` this should
-    /// be called only once per sample, _up to_ `num_samples` times, until
-    /// `Self::set_cutoff_smoothed` is to be called again
-    pub fn update_cutoff_smoother(&mut self) {
-        self.g.tick()
-    }
-
-    /// Updates the resonance parameter smoother.
-    /// 
-    /// After calling `Self::set_resonance_smoothed(value, num_samples)` this should
-    /// be called only _once_ per sample, _up to_ `num_samples` times, until
-    /// `Self::set_resonance_smoothed` is to be called again
-    pub fn update_resonance_smoother(&mut self) {
-        self.r.tick()
-    }
-
-    /// Updates the gain parameter smoother.
-    /// 
-    /// After calling `Self::set_gain_smoothed(value, num_samples)` this should
-    /// be called only _once_ per sample, _up to_ `num_samples` times, until
-    /// `Self::set_gain_smoothed` is to be called again
-    pub fn update_gain_smoother(&mut self) {
-        self.k.tick()
+        self.g.set_target(self.pre_gain_from_cutoff(cutoff * gain.sqrt()), block_len);
+        self.r.set_target(res, block_len);
+        self.k.set_target(gain, block_len);
     }
 
     /// convenience method to update all the filter's internal parameter smoothers at once.
@@ -133,9 +70,9 @@ where
     /// be called only _once_ per sample, _up to_ `num_samples` times, until
     /// `Self::set_params_smoothed` is to be called again
     pub fn update_all_smoothers(&mut self) {
-        self.update_cutoff_smoother();
-        self.update_gain_smoother();
-        self.update_resonance_smoother();
+        self.k.tick();
+        self.r.tick();
+        self.g.tick();
     }
 
     /// Update the filter's internal state, given the provided input sample.
@@ -191,8 +128,9 @@ where
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
 
-        let hp = self.hp;
-        self.k.mul_add(hp, self.x - hp)
+        let m = *self.k;
+        let bp1 = self.get_bandpass1();
+        m.mul_add(m.mul_add(self.hp, bp1), self.lp)
     }
 
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
@@ -202,7 +140,8 @@ where
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
-        let lp = self.lp;
-        self.k.mul_add(lp, self.x - lp)
+        let m = self.k.recip();
+        let bp1 = self.get_bandpass1();
+        m.mul_add(m.mul_add(self.lp, bp1), self.hp)
     }
 }
