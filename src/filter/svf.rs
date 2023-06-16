@@ -140,7 +140,7 @@ where
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
-        let m = self.k.recip();
+        let m = *self.k;
         let bp1 = self.get_bandpass1();
         m.mul_add(m.mul_add(self.lp, bp1), self.hp)
     }
