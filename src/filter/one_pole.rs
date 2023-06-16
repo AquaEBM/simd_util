@@ -96,7 +96,7 @@ where
     }
 
     pub fn get_lowshelf(&self) -> Simd<f32, N> {
-        self.k.mul_add(self.lp, self.hp)
+        self.lp / *self.k + self.hp
     }
 
     pub fn get_highshelf(&self) -> Simd<f32, N> {

@@ -45,7 +45,7 @@ where
     /// 
     /// For a smoothed version of this, see `Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
+        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt().sqrt());
         *self.k = gain;
         *self.r = res;
     }
@@ -135,12 +135,12 @@ where
 
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
 
-        let bp1 = *self.r / *self.k * self.bp;
+        let bp1 = self.get_bandpass1();
         self.k.mul_add(bp1, self.x - bp1)
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
-        let m = *self.k;
+        let m = self.k.recip();
         let bp1 = self.get_bandpass1();
         m.mul_add(m.mul_add(self.lp, bp1), self.hp)
     }
