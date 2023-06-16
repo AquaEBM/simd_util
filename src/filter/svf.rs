@@ -41,7 +41,7 @@ where
     /// 
     /// For a version that smooths it towards the given value, see `Self::set_cutoff_smoothed`
     pub fn set_cutoff(&mut self, cutoff: Simd<f32, N>) {
-        *self.g = map(cutoff * self.pi_tick, f32::tan);
+        *self.g = map(*self.k * cutoff * self.pi_tick, f32::tan);
     }
 
     /// Smoothes the filter's cutoff frequency towards
@@ -67,22 +67,22 @@ where
     /// _Immediately_ sets the filters gain to `k`
     /// 
     /// For a version that smooths it towards the given value, see `Self::set_gain_smoothed`
-    pub fn set_gain(&mut self, k: Simd<f32, N>) {
+    pub fn set_shelving_gain(&mut self, k: Simd<f32, N>) {
         *self.k = k;
     }
 
     /// Smoothes the filter's gain towards
     /// `k`, effectively reaching it after `block_len` samples
-    pub fn set_gain_smoothed(&mut self, k: Simd<f32, N>, block_len: usize) {
+    pub fn set_shelving_gain_smoothed(&mut self, k: Simd<f32, N>, block_len: usize) {
         self.k.set_target(k, block_len)
     }
 
     /// Convenience method to _immediately_ set all parameters
     /// 
-    /// For a smoothed version of this, see 'Self::set_params_smoothed`
+    /// For a smoothed version of this, see `Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
         self.set_cutoff(cutoff);
-        self.set_gain(gain);
+        self.set_shelving_gain(gain);
         self.set_resonance(res);
     }
 
@@ -97,7 +97,7 @@ where
     ) {
         self.set_cutoff_smoothed(cutoff, block_len);
         self.set_resonance_smoothed(res, block_len);
-        self.set_gain_smoothed(gain, block_len);
+        self.set_shelving_gain_smoothed(gain, block_len);
     }
 
     /// Updates the cutoff parameter smoother.
@@ -166,28 +166,27 @@ where
     }
 
     pub fn get_bandpass(&self) -> Simd<f32, N> {
-        *self.k * self.bp
+        self.bp
     }
 
     pub fn get_lowpass(&self) -> Simd<f32, N> {
-        *self.k * self.lp
+        self.lp
     }
 
     pub fn get_bandpass1(&self) -> Simd<f32, N> {
-        *self.r * self.bp * *self.k
+        *self.r * self.bp
     }
 
     pub fn get_allpass(&self) -> Simd<f32, N> {
-        let bp1 = *self.r * self.bp;
-        *self.k * Simd::splat(2.).mul_add(bp1, -self.x)
+        Simd::splat(2.).mul_add(self.get_bandpass1(), -self.x)
     }
 
     pub fn get_notch(&self) -> Simd<f32, N> {
-        *self.k * self.r.mul_add(-self.bp, self.x)
+        self.r.mul_add(-self.bp, self.x)
     }
 
     pub fn get_peaking(&self) -> Simd<f32, N> {
-       *self.k * (self.lp - self.hp)
+       self.lp - self.hp
     }
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
@@ -198,7 +197,7 @@ where
 
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
 
-        let bp1 = *self.r * self.bp;
+        let bp1 = *self.r / *self.k * self.bp;
         self.k.mul_add(bp1, self.x - bp1)
     }
 
