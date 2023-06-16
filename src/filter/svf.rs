@@ -60,9 +60,9 @@ where
         gain: Simd<f32, N>,
         block_len: usize,
     ) {
-        let k = gain.sqrt().sqrt();
+        let k = gain.sqrt();
 
-        self.g.set_target(self.pre_gain_from_cutoff(cutoff * k), block_len);
+        self.g.set_target(self.pre_gain_from_cutoff(cutoff * k.sqrt()), block_len);
         self.r.set_target(res, block_len);
         self.k.set_target(k, block_len);
     }

@@ -59,7 +59,7 @@ where
             block_len
         );
 
-        self.k.set_target(k, block_len)
+        self.k.set_target(gain, block_len)
     }
 
     /// convenience method to update all the filter's internal parameter smoothers at once.
