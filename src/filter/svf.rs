@@ -45,8 +45,9 @@ where
     /// 
     /// For a smoothed version of this, see `Self::set_params_smoothed`
     pub fn set_params(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt().sqrt());
-        *self.k = gain;
+        let k = gain.sqrt().sqrt();
+        *self.g = self.pre_gain_from_cutoff(cutoff * k);
+        *self.k = k;
         *self.r = res;
     }
 
@@ -59,9 +60,11 @@ where
         gain: Simd<f32, N>,
         block_len: usize,
     ) {
-        self.g.set_target(self.pre_gain_from_cutoff(cutoff * gain.sqrt().sqrt()), block_len);
+        let k = gain.sqrt().sqrt();
+
+        self.g.set_target(self.pre_gain_from_cutoff(cutoff * k), block_len);
         self.r.set_target(res, block_len);
-        self.k.set_target(gain, block_len);
+        self.k.set_target(k, block_len);
     }
 
     /// convenience method to update all the filter's internal parameter smoothers at once.
