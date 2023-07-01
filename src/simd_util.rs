@@ -84,7 +84,7 @@ where
     Simd::from_array([item ; N])
 }
 
-// We're using intrinsics for now because u32 gathers aren't in std::simd yet
+// We're using intrinsics for now because u32 gathers aren't in core::simd yet
 pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, or: Float) -> Float {
 
     cfg_if! {
@@ -105,7 +105,7 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
                 or.into(),
                 slice.as_ptr(),
                 index.into(),
-                mask.into(),
+                transmute(mask), // Why is this __m256, not __m256i? I don't know
                 4
             ).into()
         
