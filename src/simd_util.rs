@@ -31,8 +31,7 @@ pub const ONE_F: Float = const_splat(1.);
 //  - the type of `vector` has greater alignment that the return type
 //  - the output reference's lifetime is the same as that of the input
 //  - so no unbounded lifetimes
-//  - we are transmuting a vector to an array over the same scalar
-//  - so values are valid
+//  - we are transmuting a vector to an array over the same scalar, so values are valid
 
 pub fn as_stereo_sample_array<T: SimdElement>(
     vector: &Simd<T, MAX_VECTOR_WIDTH>
