@@ -33,6 +33,7 @@ impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct LogSmoother<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount
@@ -92,7 +93,7 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct LinearSmoother<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount

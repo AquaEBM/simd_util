@@ -4,7 +4,7 @@ use super::*;
 pub mod svf;
 pub mod one_pole;
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 /// Transposed Direct Form II integrator, dereference to get internal (`z^-1`) state
 pub struct Integrator<const N: usize>
 where
