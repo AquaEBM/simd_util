@@ -53,8 +53,9 @@ where
 
     /// Convenience method to smooth all parameters toward the given values
     /// effectively reaching them after `block_len` samples
-    /// the gain should be 1. / <actual_gain> for when using low and band-shelving filters
+    /// the gain should be 1. / <actual_gain> for when using low shelving filters
     /// the gain should exactly 1. when outputting non-shelving shapes
+    /// otherwise the cutoff will be detuned
     pub fn set_params_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
