@@ -37,7 +37,7 @@ where
         self.s[1].reset();
     }
 
-    pub fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
+    fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
         map(cutoff * self.pi_tick, f32::tan)
     }
 
@@ -53,6 +53,8 @@ where
 
     /// Convenience method to smooth all parameters toward the given values
     /// effectively reaching them after `block_len` samples
+    /// the gain should be 1. / <actual_gain> for when using low and band-shelving filters
+    /// the gain should exactly 1. when outputting non-shelving shapes
     pub fn set_params_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
@@ -61,9 +63,10 @@ where
         block_len: usize,
     ) {
         let k = gain.sqrt();
+        let m = k.sqrt();
 
-        self.g.set_target(self.pre_gain_from_cutoff(cutoff * k.sqrt()), block_len);
-        self.r.set_target(res, block_len);
+        self.g.set_target(self.pre_gain_from_cutoff(cutoff * m), block_len);
+        self.r.set_target(res * m, block_len);
         self.k.set_target(k, block_len);
     }
 
@@ -91,7 +94,7 @@ where
         let g1 = *self.r + g;
 
         self.x = sample;
-        self.hp = (sample - *self.s[1] - *self.s[0] * g1) / (Simd::splat(1.) + g * g1);
+        self.hp = (sample - *self.s[1] - *self.s[0] * g1) / g1.mul_add(g, Simd::splat(1.));
         self.bp = self.s[0].process(self.hp, g);
         self.lp = self.s[1].process(self.bp, g);
     }
@@ -123,10 +126,6 @@ where
 
     pub fn get_notch(&self) -> Simd<f32, N> {
         self.r.mul_add(-self.bp, self.x)
-    }
-
-    pub fn get_peaking(&self) -> Simd<f32, N> {
-       self.lp - self.hp
     }
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
