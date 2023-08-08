@@ -120,6 +120,7 @@ where
     ) {
         self.g.set_target(self.pre_gain_from_cutoff(cutoff), num_samples);
         self.r.set_target(res, num_samples);
+        *self.k = Simd::splat(1.);
     }
 
     /// _immediately_ set parameters, call this if you
@@ -172,6 +173,7 @@ where
     pub fn set_params_non_shelving(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>) {
         *self.g = self.pre_gain_from_cutoff(cutoff);
         *self.r = res;
+        *self.k = Simd::splat(1.);
     }
 
     /// convenience method to update all the filter's internal parameter smoothers at once.
