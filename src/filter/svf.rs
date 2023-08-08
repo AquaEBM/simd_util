@@ -71,9 +71,9 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let k = gain.sqrt();
-        let m = k.sqrt();
-        self.set_values_smoothed(cutoff * m, res, Simd::splat(1.) / k, num_samples);
+        let isqr_gain = gain.recip().sqrt();
+        let m = isqr_gain.sqrt();
+        self.set_values_smoothed(cutoff * m, res, isqr_gain, num_samples);
     }
 
     /// smooth parameters towards the given values, effectively
@@ -105,7 +105,7 @@ where
     ) {
         let k = gain.sqrt();
         let m = k.sqrt();
-        self.set_values_smoothed(cutoff, res * m, k, num_samples);
+        self.set_values_smoothed(cutoff * m, res, k, num_samples);
     }
 
     /// smooth parameters towards the given values, effectively
