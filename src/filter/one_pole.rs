@@ -78,10 +78,10 @@ where
         num_samples: usize
     ) {
         self.g.set_target(
-            self.pre_gain_from_cutoff(cutoff * gain.sqrt()),
+            self.pre_gain_from_cutoff(cutoff * gain.recip().sqrt()),
             num_samples
         );
-        self.k.set_target(gain.recip(), num_samples);
+        self.k.set_target(gain, num_samples);
     }
 
     /// like `Self::set_params_high_shelving` but smoothed.
