@@ -59,11 +59,7 @@ where
         self.k.set_target(gain, num_samples);
     }
 
-    /// smooth parameters towards the given values, effectively
-    /// reaching them after `num_samples` samples, call this if you
-    /// intend to later output _only_ low-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_low_shelving_smoothed`
+    /// Like `Self::set_params_low_shelving` but with smoothing
     pub fn set_params_low_shelving_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
@@ -71,16 +67,11 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let isqr_gain = gain.recip().sqrt();
-        let m = isqr_gain.sqrt();
-        self.set_values_smoothed(cutoff * m, res, isqr_gain, num_samples);
+        let m2 = gain.sqrt();
+        self.set_values_smoothed(cutoff / m2.sqrt(), res, m2, num_samples);
     }
 
-    /// smooth parameters towards the given values, effectively
-    /// reaching them after `num_samples` samples, call this if you
-    /// intend to later output _only_ band-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_band_shelving_smoothed`
+    /// Like `Self::set_params_band_shelving` but with smoothing
     pub fn set_params_band_shelving_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
@@ -88,14 +79,10 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        self.set_values_smoothed(cutoff, res * gain.recip().sqrt(), gain, num_samples);
+        self.set_values_smoothed(cutoff, res / gain.sqrt(), gain, num_samples);
     }
 
-    /// smooth parameters towards the given values, effectively
-    /// reaching them after `num_samples` samples, call this if you
-    /// intend to later output _only_ high-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_high_or_band_shelving_smoothed`
+    /// Like `Self::set_params_high_shelving` but with smoothing
     pub fn set_params_high_shelving_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
@@ -103,16 +90,11 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let k = gain.sqrt();
-        let m = k.sqrt();
-        self.set_values_smoothed(cutoff * m, res, k, num_samples);
+        let m2 = gain.sqrt();
+        self.set_values_smoothed(cutoff * m2.sqrt(), res, m2, num_samples);
     }
 
-    /// smooth parameters towards the given values, effectively
-    /// reaching them after `num_samples` samples, call this if you
-    /// intend to later output non-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_non_shelving_smoothed`
+    /// Like `Self::set_params_non_shelving` but with smoothing
     pub fn set_params_non_shelving_smoothed(
         &mut self, cutoff: Simd<f32, N>,
         res: Simd<f32, N>,
@@ -123,64 +105,50 @@ where
         *self.k = Simd::splat(1.);
     }
 
-    /// _immediately_ set parameters, call this if you
-    /// intend to later output _only_ low-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_low_shelving_smoothed`
+    /// call this if you intend to later output _only_ low-shelving filter shapes
     pub fn set_params_low_shelving(
         &mut self,
         cutoff: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let k = gain.recip().sqrt();
-        let m = k.sqrt();
-        self.set_values(cutoff * m, res, k);
+        let m2 = gain.sqrt();
+        self.set_values(cutoff / m2.sqrt(), res, m2);
     }
 
-    /// _immediately_ set parameters, call this if you
-    /// intend to later output _only_ band-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_band_shelving_smoothed`
+    /// call this if you intend to later output _only_ band-shelving filter shapes
     pub fn set_params_band_shelving(
         &mut self,
         cutoff: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        self.set_values(cutoff, res * gain.recip().sqrt(), gain);
+        self.set_values(cutoff, res / gain.sqrt(), gain);
     }
 
-    /// _immediately_ set parameters, call this if you
-    /// intend to later output _only_ high-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_high_or_band_shelving_smoothed`
+    /// call this if you intend to later output _only_ high-shelving filter shapes
     pub fn set_params_high_shelving(
         &mut self,
         cutoff: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let k = gain.sqrt();
-        let m = k.sqrt();
-        self.set_values(cutoff * m, res, k);
+        let m2 = gain.sqrt();
+        self.set_values(cutoff * m2.sqrt(), res, m2);
     }
 
-    /// _immediately_ set parameters, call this if you
-    /// intend to later output non-shelving filter shapes
-    /// 
-    /// For a smoothed version of this, see `Self::set_params_non_shelving_smoothed`
+    /// call this if you intend to later output non-shelving filter shapes
     pub fn set_params_non_shelving(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>) {
         *self.g = self.pre_gain_from_cutoff(cutoff);
         *self.r = res;
         *self.k = Simd::splat(1.);
     }
 
-    /// convenience method to update all the filter's internal parameter smoothers at once.
+    /// Update the filter's internal parameter smoothers.
     /// 
-    /// After calling `Self::set_params_smoothed(values, ..., num_samples)` this should
+    /// After calling `Self::set_params_<output_type>_smoothed(values, ..., num_samples)` this should
     /// be called only _once_ per sample, _up to_ `num_samples` times, until
-    /// `Self::set_params_smoothed` is to be called again
+    /// that function is to be called again
     pub fn update_all_smoothers(&mut self) {
         self.k.tick();
         self.r.tick();
@@ -211,7 +179,7 @@ where
     }
 
     pub fn get_highpass(&self) -> Simd<f32, N> {
-        *self.k * self.hp
+        self.hp
     }
 
     pub fn get_bandpass(&self) -> Simd<f32, N> {
@@ -236,9 +204,9 @@ where
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
 
-        let m = *self.k;
+        let m2 = *self.k;
         let bp1 = self.get_bandpass1();
-        m.mul_add(m.mul_add(self.hp, bp1), self.lp)
+        m2.mul_add(m2.mul_add(self.hp, bp1), self.lp)
     }
 
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
@@ -248,8 +216,8 @@ where
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
-        let m = self.k.recip();
+        let m2 = *self.k;
         let bp1 = self.get_bandpass1();
-        m.mul_add(m.mul_add(self.lp, bp1), self.hp)
+        m2.mul_add(m2.mul_add(self.lp, bp1), self.hp)
     }
 }

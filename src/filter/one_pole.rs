@@ -36,33 +36,67 @@ where
         g / (Simd::splat(1.) + g)
     }
 
-    /// Convenience method to _immediately_ set all parameters
-    /// 
-    /// For a smoothed version of this, see 'Self::set_params_smoothed`
-    pub fn set_params(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
+    /// this pretty much only sets the filter's cutoff to the
+    /// given value and the gain to `1.0`, call this _only_ if you intend to
+    /// output non-shelving filter shapes.
+    pub fn set_cutoff(&mut self, cutoff: Simd<f32, N>) {
+        *self.g = self.pre_gain_from_cutoff(cutoff);
+        *self.k = Simd::splat(1.);
+    }
+
+    /// call this _only_ if you intend to output low-shelving filter shapes.
+    pub fn set_params_low_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
+        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
+        *self.k = gain.recip();
+    }
+    /// call this _only_ if you intend to output high-shelving filter shapes.
+    pub fn set_params_high_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
         *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
         *self.k = gain;
     }
 
-    /// Convenience method to smooth all parameters toward the given values
-    /// effectively reaching them after `block_len` samples
-    pub fn set_params_smoothed(
+    /// like `Self::set_cutoff` but smoothed
+    pub fn set_cutoff_smoothed(
         &mut self,
         cutoff: Simd<f32, N>,
-        gain: Simd<f32, N>,
         block_len: usize
     ) {
-        let k = gain.sqrt();
-
         self.g.set_target(
-            self.pre_gain_from_cutoff(k * cutoff),
+            self.pre_gain_from_cutoff(cutoff),
             block_len
         );
 
-        self.k.set_target(gain, block_len)
+        self.k.set_target(Simd::splat(1.), block_len)
     }
 
-    /// convenience method to update all the filter's internal parameter smoothers at once.
+    /// like `Self::set_params_low_shelving` but smoothed
+    pub fn set_params_low_shelving_smoothed(
+        &mut self,
+        cutoff: Simd<f32, N>,
+        gain: Simd<f32, N>,
+        num_samples: usize
+    ) {
+        self.g.set_target(
+            self.pre_gain_from_cutoff(cutoff * gain.sqrt()),
+            num_samples
+        );
+        self.k.set_target(gain.recip(), num_samples);
+    }
+    /// like `Self::set_params_high_shelving` but smoothed.
+    pub fn set_params_high_shelving_smoothed(
+        &mut self,
+        cutoff: Simd<f32, N>,
+        gain: Simd<f32, N>,
+        num_samples: usize
+    ) {
+        self.g.set_target(
+            self.pre_gain_from_cutoff(cutoff * gain.sqrt()),
+            num_samples
+        );
+        self.k.set_target(gain, num_samples);
+    }
+
+    /// update the filter's internal parameter smoothers.
     /// 
     /// After calling `Self::set_params_smoothed(values, ..., num_samples)` this should
     /// be called only _once_ per sample, _up to_ `num_samples` times, until
@@ -99,7 +133,7 @@ where
     }
 
     pub fn get_lowshelf(&self) -> Simd<f32, N> {
-        self.lp / *self.k + self.hp
+        self.k.mul_add(self.lp, self.hp)
     }
 
     pub fn get_highshelf(&self) -> Simd<f32, N> {
