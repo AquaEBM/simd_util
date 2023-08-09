@@ -49,6 +49,7 @@ where
         *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
         *self.k = gain.recip();
     }
+
     /// call this _only_ if you intend to output high-shelving filter shapes.
     pub fn set_params_high_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
         *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
@@ -82,6 +83,7 @@ where
         );
         self.k.set_target(gain.recip(), num_samples);
     }
+
     /// like `Self::set_params_high_shelving` but smoothed.
     pub fn set_params_high_shelving_smoothed(
         &mut self,
