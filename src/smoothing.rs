@@ -1,31 +1,37 @@
 use std::ops::{Deref, DerefMut};
-
 use super::*;
+use simd_util::MAX_VECTOR_WIDTH;
+use math::pow;
 
-pub trait SIMDSmoother<T, const N: usize>
+pub trait SIMDSmoother<T, const N: usize = MAX_VECTOR_WIDTH>
 where
     LaneCount<N>: SupportedLaneCount,
     T: SimdElement
 {
     fn set_target(&mut self, target: Simd<T, N>, num_samples: usize);
     fn tick(&mut self);
+    fn tick_n(&mut self, n: u32);
     fn current(&self) -> &Simd<T, N>;
 }
 
 pub trait Smoother<T: SimdElement> {
     fn set_target(&mut self, target: T, num_samples: usize);
     fn tick(&mut self);
+    fn tick_n(&mut self, n: u32);
     fn current(&self) -> &T;
 }
 
 impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
     fn tick(&mut self) {
-        // to avoid ambiguity
-        <Self as SIMDSmoother<U, 1>>::tick(self);
+        self.tick();
     }
 
     fn set_target(&mut self, target: U, num_samples: usize) {
         self.set_target(Simd::from_array([target]), num_samples);
+    }
+
+    fn tick_n(&mut self, n: u32) {
+        self.tick_n(n);
     }
 
     fn current(&self) -> &U {
@@ -34,7 +40,7 @@ impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
 }
 
 #[derive(Clone, Copy)]
-pub struct LogSmoother<const N: usize>
+pub struct LogSmoother<const N: usize = MAX_VECTOR_WIDTH>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -60,12 +66,17 @@ where
 {
     fn set_target(&mut self, target: Simd<f32, N>, num_samples: usize) {
         let base = target / self.value;
-        let exp = 1. / num_samples as f32;
-        self.factor = simd_util::map(base, |v| v.powf(exp));
+        let exp = Simd::splat(1. / num_samples as f32);
+        self.factor = pow(base, exp);
     }
 
     fn tick(&mut self) {
         self.value *= self.factor;
+    }
+
+    fn tick_n(&mut self, n: u32) {
+        let n = n as i32;
+        self.value *= pow(self.factor, Simd::splat(n as f32));
     }
 
     fn current(&self) -> &Simd<f32, N> {
@@ -94,7 +105,7 @@ where
 }
 
 #[derive(Default, Clone, Copy)]
-pub struct LinearSmoother<const N: usize>
+pub struct LinearSmoother<const N: usize = MAX_VECTOR_WIDTH>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -112,6 +123,10 @@ where
 
     fn tick(&mut self) {
         self.value += self.increment;
+    }
+
+    fn tick_n(&mut self, n: u32) {
+        self.value += self.increment * Simd::splat(n as f32);
     }
 
     fn current(&self) -> &Simd<f32, N> {

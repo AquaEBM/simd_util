@@ -61,17 +61,28 @@ pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    let c = Simd::splat(-1. / 2. / LN_2);
-    let d = Simd::splat(1. / 3. / LN_2);
+    let a = Simd::splat(-1819.0 / 651.0);
+    let b = Simd::splat(5.0);
+    let c = Simd::splat(-10.0 / 3.0);
+    let d = Simd::splat(10.0 / 7.0);
+    let e = Simd::splat(-1.0 / 3.0);
+    let f = Simd::splat(1.0 / 31.0);
 
     let mantissa_mask = Simd::splat(1 << (f32::MANTISSA_DIGITS - 1) - 1);
     let zero_exponent = Simd::splat(1f32.to_bits());
 
     let log_exponent = ilog2f(v).cast();
-    let x = Simd::from_bits(v.to_bits() & mantissa_mask | zero_exponent) - Simd::splat(1f32); 
+    let x = Simd::<f32, N>::from_bits(v.to_bits() & mantissa_mask | zero_exponent); 
 
-    let y = (x * x).mul_add(x.mul_add(d, c), x);
+    let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(x.mul_add(f, e), d), c), b), a);
     log_exponent + y
+}
+
+pub fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    exp2(log2(base) * exp)
 }
 
 pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
