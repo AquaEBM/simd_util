@@ -55,8 +55,7 @@ where
 }
 
 /// "cheap" log2 approximation, results in undefined behavior in case of
-/// NAN, inf or subnormal numbers. taylor series is terrible here so
-/// TODO: find a minimax polynomial and use that
+/// NAN, inf or subnormal numbers.
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount

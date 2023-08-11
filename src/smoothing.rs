@@ -1,4 +1,3 @@
-use std::ops::{Deref, DerefMut};
 use super::*;
 use simd_util::MAX_VECTOR_WIDTH;
 use math::pow;
@@ -9,16 +8,18 @@ where
     T: SimdElement
 {
     fn set_target(&mut self, target: Simd<T, N>, num_samples: usize);
+    fn set_instantly(&mut self, value: Simd<T, N>);
     fn tick(&mut self);
     fn tick_n(&mut self, n: u32);
-    fn current(&self) -> &Simd<T, N>;
+    fn get_current(&self) -> Simd<T, N>;
 }
 
 pub trait Smoother<T: SimdElement> {
     fn set_target(&mut self, target: T, num_samples: usize);
+    fn set_instantly(&mut self, value: T);
     fn tick(&mut self);
     fn tick_n(&mut self, n: u32);
-    fn current(&self) -> &T;
+    fn get_current(&self) -> T;
 }
 
 impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
@@ -30,12 +31,16 @@ impl<U: SimdElement, T: SIMDSmoother<U, 1>> Smoother<U> for T {
         self.set_target(Simd::from_array([target]), num_samples);
     }
 
+    fn set_instantly(&mut self, value: U) {
+        self.set_instantly(Simd::from_array([value]));
+    }
+
     fn tick_n(&mut self, n: u32) {
         self.tick_n(n);
     }
 
-    fn current(&self) -> &U {
-        &self.current()[0]
+    fn get_current(&self) -> U {
+        self.get_current()[0]
     }
 }
 
@@ -70,6 +75,10 @@ where
         self.factor = pow(base, exp);
     }
 
+    fn set_instantly(&mut self, value: Simd<f32, N>) {
+        self.value = value;
+    }
+
     fn tick(&mut self) {
         self.value *= self.factor;
     }
@@ -79,28 +88,8 @@ where
         self.value *= pow(self.factor, Simd::splat(n as f32));
     }
 
-    fn current(&self) -> &Simd<f32, N> {
-        &self.value
-    }
-}
-
-impl<const N: usize> Deref for LogSmoother<N>
-where
-    LaneCount<N>: SupportedLaneCount
-{
-    type Target = Simd<f32, N>;
-
-    fn deref(&self) -> &Self::Target {
-        self.current()
-    }
-}
-
-impl<const N: usize> DerefMut for LogSmoother<N>
-where
-    LaneCount<N>: SupportedLaneCount
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
+    fn get_current(&self) -> Simd<f32, N> {
+        self.value
     }
 }
 
@@ -121,6 +110,10 @@ where
         self.increment = (target - self.value) / Simd::splat(num_samples as f32);
     }
 
+    fn set_instantly(&mut self, value: Simd<f32, N>) {
+        self.value = value;
+    }
+
     fn tick(&mut self) {
         self.value += self.increment;
     }
@@ -129,27 +122,54 @@ where
         self.value += self.increment * Simd::splat(n as f32);
     }
 
-    fn current(&self) -> &Simd<f32, N> {
-        &self.value
+    fn get_current(&self) -> Simd<f32, N> {
+        self.value
     }
 }
 
-impl<const N: usize> Deref for LinearSmoother<N>
+pub struct CachedTarget<T, U, const N: usize = MAX_VECTOR_WIDTH>
 where
+    T: SimdElement,
     LaneCount<N>: SupportedLaneCount
 {
-    type Target = Simd<f32, N>;
+    smoother: U,
+    target: Simd<T, N>,
+}
 
-    fn deref(&self) -> &Self::Target {
-        self.current()
+impl<T, U, const N: usize> SIMDSmoother<T, N> for CachedTarget<T, U, N>
+where
+    T: SimdElement,
+    U: SIMDSmoother<T, N>,
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn set_target(&mut self, target: Simd<T, N>, num_samples: usize) {
+        self.target = target;
+        self.smoother.set_target(target, num_samples);
+    }
+
+    fn set_instantly(&mut self, value: Simd<T, N>) {
+        self.smoother.set_instantly(value);
+    }
+
+    fn tick(&mut self) {
+        self.smoother.tick()
+    }
+
+    fn tick_n(&mut self, n: u32) {
+        self.smoother.tick_n(n)
+    }
+
+    fn get_current(&self) -> Simd<T, N> {
+        self.smoother.get_current()
     }
 }
 
-impl<const N: usize> DerefMut for LinearSmoother<N>
+impl<T, U, const N: usize> CachedTarget<T, U, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    T: SimdElement,
+    LaneCount<N>: SupportedLaneCount,
 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
+    pub fn get_target(&self) -> Simd<T, N> {
+        self.target
     }
 }

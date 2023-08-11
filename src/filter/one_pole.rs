@@ -40,20 +40,20 @@ where
     /// given value and the gain to `1.0`, call this _only_ if you intend to
     /// output non-shelving filter shapes.
     pub fn set_cutoff(&mut self, cutoff: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff);
-        *self.k = Simd::splat(1.);
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff));
+        self.k.set_instantly(Simd::splat(1.));
     }
 
     /// call this _only_ if you intend to output low-shelving filter shapes.
     pub fn set_params_low_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
-        *self.k = gain.recip();
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff * gain.sqrt()));
+        self.k.set_instantly(gain.recip());
     }
 
     /// call this _only_ if you intend to output high-shelving filter shapes.
     pub fn set_params_high_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
-        *self.g = self.pre_gain_from_cutoff(cutoff * gain.sqrt());
-        *self.k = gain;
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff * gain.sqrt()));
+        self.k.set_instantly(gain);
     }
 
     /// like `Self::set_cutoff` but smoothed
@@ -98,7 +98,7 @@ where
         self.k.set_target(gain, num_samples);
     }
 
-    /// update the filter's internal parameter smoothers.
+    ///update t.set_instantly(filter's internal parameter smoothers.
     /// 
     /// After calling `Self::set_params_smoothed(values, ..., num_samples)` this should
     /// be called only _once_ per sample, _up to_ `num_samples` times, until
@@ -116,7 +116,7 @@ where
     /// using `Self::get_{highpass, lowpass, allpass, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
 
-        let lp = self.s.process(sample - *self.s, *self.g);
+        let lp = self.s.process(sample - *self.s, self.g.get_current());
 
         self.hp = sample - self.lp;
         self.lp = lp;
@@ -135,11 +135,11 @@ where
     }
 
     pub fn get_lowshelf(&self) -> Simd<f32, N> {
-        self.k.mul_add(self.lp, self.hp)
+        self.k.get_current().mul_add(self.lp, self.hp)
     }
 
     pub fn get_highshelf(&self) -> Simd<f32, N> {
         
-        self.k.mul_add(self.hp, self.lp)
+        self.k.get_current().mul_add(self.hp, self.lp)
     }
 }
