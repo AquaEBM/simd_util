@@ -106,7 +106,7 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
                 slice.as_ptr(),
                 index.into(),
                 transmute(mask), // Why is this __m256, not __m256i? I don't know
-                1
+                4
             ).into()
         
         } else {
@@ -125,7 +125,7 @@ pub unsafe fn gather(slice: &[f32], index: UInt) -> Float {
         
         } else if #[cfg(target_feature = "avx2")] {
         
-            _mm256_i32gather_ps(slice.as_ptr(), index.into(), 1).into()
+            _mm256_i32gather_ps(slice.as_ptr(), index.into(), 4).into()
         
         } else {
             Simd::gather_select_unchecked(slice, Mask::splat(true), index.cast(), Simd::splat(0.))
