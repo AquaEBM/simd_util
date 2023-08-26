@@ -67,7 +67,7 @@ where
     let e = Simd::splat(-1.0 / 3.0);
     let f = Simd::splat(1.0 / 31.0);
 
-    let mantissa_mask = Simd::splat(1 << (f32::MANTISSA_DIGITS - 1) - 1);
+    let mantissa_mask = Simd::splat((1 << (f32::MANTISSA_DIGITS - 1)) - 1);
     let zero_exponent = Simd::splat(1f32.to_bits());
 
     let log_exponent = ilog2f(v).cast();
