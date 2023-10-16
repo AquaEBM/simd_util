@@ -4,6 +4,8 @@ use super::*;
 pub mod svf;
 pub mod one_pole;
 
+const MAX_CUTOFF_RATIO: f32 = 22000. / 44100.;
+
 #[derive(Default, Clone, Copy)]
 /// Transposed Direct Form II integrator, dereference to get internal (`z^-1`) state
 pub struct Integrator<const N: usize>
@@ -17,7 +19,7 @@ impl<const N: usize> Integrator<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    /// Process the integrator cirucit with the given pre-gain.
+    /// Process the integrator circuit with the given pre-gain.
     /// 
     /// `g` is usually `cutoff / (2 * sample_rate)` (unprewarped), or
     /// `tan(PI / sample_rate * cutoff)` (prewarped) in most filter types

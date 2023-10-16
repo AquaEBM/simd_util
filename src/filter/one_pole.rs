@@ -12,6 +12,8 @@ where
     s: Integrator<N>,
     lp: Simd<f32, N>,
     hp: Simd<f32, N>,
+    max_cutoff: Simd<f32, N>,
+    min_tick: Simd<f32, N>,
     pi_tick: Simd<f32, N>,
 }
 
@@ -20,17 +22,24 @@ where
     LaneCount<N>: SupportedLaneCount
 {
     pub fn reset(&mut self) {
+
         *self = Self {
+            max_cutoff: self.max_cutoff,
+            min_tick: self.min_tick,
             pi_tick: self.pi_tick,
             ..Default::default()
         }
     }
 
     pub fn set_sample_rate(&mut self, sr: f32) {
+
+        self.max_cutoff = Simd::splat(sr * MAX_CUTOFF_RATIO);
+        self.min_tick = Simd::splat(1. / sr * MAX_CUTOFF_RATIO);
         self.pi_tick = Simd::splat(PI / sr);
     }
 
     fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
+
         let g = map(cutoff * self.pi_tick, f32::tan);
 
         g / (Simd::splat(1.) + g)
@@ -46,14 +55,24 @@ where
 
     /// call this _only_ if you intend to output low-shelving filter shapes.
     pub fn set_params_low_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff * gain.sqrt()));
-        self.k.set_instantly(gain.recip());
+
+        let ratio = cutoff * self.min_tick;
+
+        let k = gain.simd_max(ratio * ratio);
+
+        self.k.set_instantly(k);
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff / k.sqrt()));
     }
 
     /// call this _only_ if you intend to output high-shelving filter shapes.
     pub fn set_params_high_shelving(&mut self, cutoff: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff * gain.sqrt()));
-        self.k.set_instantly(gain);
+
+        let ratio = self.max_cutoff / cutoff;
+
+        let k = gain.simd_min(ratio * ratio);
+
+        self.k.set_instantly(k);
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff * k.sqrt()));
     }
 
     /// like `Self::set_cutoff` but smoothed
@@ -62,12 +81,12 @@ where
         cutoff: Simd<f32, N>,
         block_len: usize
     ) {
+        self.k.set_target(Simd::splat(1.), block_len);
+
         self.g.set_target(
             self.pre_gain_from_cutoff(cutoff),
             block_len
         );
-
-        self.k.set_target(Simd::splat(1.), block_len)
     }
 
     /// like `Self::set_params_low_shelving` but smoothed
@@ -77,11 +96,17 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
+
+        let ratio = cutoff * self.min_tick;
+
+        let k = gain.simd_max(ratio * ratio);
+
+        self.k.set_target(k, num_samples);
+
         self.g.set_target(
-            self.pre_gain_from_cutoff(cutoff * gain.recip().sqrt()),
+            self.pre_gain_from_cutoff(cutoff / k.sqrt()),
             num_samples
         );
-        self.k.set_target(gain, num_samples);
     }
 
     /// like `Self::set_params_high_shelving` but smoothed.
@@ -91,11 +116,17 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
+
+        let ratio = self.max_cutoff / cutoff;
+
+        let k = gain.simd_min(ratio * ratio);
+
+        self.k.set_target(k, num_samples);
+
         self.g.set_target(
-            self.pre_gain_from_cutoff(cutoff * gain.sqrt()),
+            self.pre_gain_from_cutoff(cutoff * k.sqrt()),
             num_samples
         );
-        self.k.set_target(gain, num_samples);
     }
 
     ///update t.set_instantly(filter's internal parameter smoothers.

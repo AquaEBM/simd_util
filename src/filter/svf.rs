@@ -17,6 +17,8 @@ where
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N> ; 2],
+    max_cutoff: Simd<f32, N>,
+    min_tick: Simd<f32, N>,
     pi_tick: Simd<f32, N>,
     x: Simd<f32, N>,
     hp: Simd<f32, N>,
@@ -29,12 +31,20 @@ where
     LaneCount<N>: SupportedLaneCount
 {
     pub fn set_sample_rate(&mut self, sr: f32) {
+
+        self.max_cutoff = Simd::splat(sr * MAX_CUTOFF_RATIO);
+        self.min_tick = Simd::splat(1. / sr * MAX_CUTOFF_RATIO);
         self.pi_tick = Simd::splat(PI / sr);
     }
 
     pub fn reset(&mut self) {
-        self.s[0].reset();
-        self.s[1].reset();
+        
+        *self = Self {
+            max_cutoff: self.max_cutoff,
+            min_tick: self.min_tick,
+            pi_tick: self.pi_tick,
+            ..Default::default()
+        }
     }
 
     fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
@@ -42,8 +52,8 @@ where
     }
 
     fn set_values(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff));
         self.k.set_instantly(gain);
+        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff));
         self.r.set_instantly(res);
     }
 
@@ -54,9 +64,9 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
+        self.k.set_target(gain, num_samples);
         self.g.set_target(self.pre_gain_from_cutoff(cutoff), num_samples);
         self.r.set_target(res, num_samples);
-        self.k.set_target(gain, num_samples);
     }
 
     /// Like `Self::set_params_low_shelving` but with smoothing
@@ -67,7 +77,8 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let m2 = gain.sqrt();
+        let ratio = cutoff * self.min_tick;
+        let m2 = gain.sqrt().simd_max(ratio * ratio);
         self.set_values_smoothed(cutoff / m2.sqrt(), res, m2, num_samples);
     }
 
@@ -90,7 +101,8 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let m2 = gain.sqrt();
+        let ratio = self.max_cutoff / cutoff;
+        let m2 = gain.sqrt().simd_min(ratio * ratio);
         self.set_values_smoothed(cutoff * m2.sqrt(), res, m2, num_samples);
     }
 
@@ -112,7 +124,8 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let m2 = gain.sqrt();
+        let ratio = cutoff * self.min_tick;
+        let m2 = gain.sqrt().simd_max(ratio * ratio);
         self.set_values(cutoff / m2.sqrt(), res, m2);
     }
 
@@ -133,7 +146,8 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let m2 = gain.sqrt();
+        let ratio = self.max_cutoff / cutoff;
+        let m2 = gain.sqrt().simd_min(ratio * ratio);
         self.set_values(cutoff * m2.sqrt(), res, m2);
     }
 
@@ -204,7 +218,7 @@ where
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
 
-        let m2 = self.k.get_current();
+        let m2 = self.get_gain();
         let bp1 = self.get_bandpass1();
         m2.mul_add(m2.mul_add(self.hp, bp1), self.lp)
     }
@@ -212,11 +226,11 @@ where
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
 
         let bp1 = self.get_bandpass1();
-        self.k.get_current().mul_add(bp1, self.x - bp1)
+        self.get_gain().mul_add(bp1, self.x - bp1)
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
-        let m2 = self.k.get_current();
+        let m2 = self.get_gain();
         let bp1 = self.get_bandpass1();
         m2.mul_add(m2.mul_add(self.lp, bp1), self.hp)
     }
