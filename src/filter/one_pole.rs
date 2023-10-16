@@ -34,7 +34,7 @@ where
     pub fn set_sample_rate(&mut self, sr: f32) {
 
         self.max_cutoff = Simd::splat(sr * MAX_CUTOFF_RATIO);
-        self.min_tick = Simd::splat(1. / sr * MAX_CUTOFF_RATIO);
+        self.min_tick = Simd::splat(1. / (sr * MAX_CUTOFF_RATIO));
         self.pi_tick = Simd::splat(PI / sr);
     }
 
