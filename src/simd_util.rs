@@ -29,19 +29,18 @@ pub const ONE_F: Float = const_splat(1.);
 // Safety argument for the following two functions:
 //  - both referred to types have the same size 
 //  - the type of `vector` has greater alignment that the return type
-//  - the output reference's lifetime is the same as that of the input
-//  - so no unbounded lifetimes
+//  - the output reference's lifetime is the same as that of the input, so no unbounded lifetimes
 //  - we are transmuting a vector to an array over the same scalar, so values are valid
 
-pub fn as_stereo_sample_array<T: SimdElement>(
-    vector: &Simd<T, MAX_VECTOR_WIDTH>
-) -> &[Simd<T, 2> ; VOICES_PER_VECTOR] {
+pub fn as_stereo_sample_array<'a, T: SimdElement>(
+    vector: &'a Simd<T, MAX_VECTOR_WIDTH>
+) -> &'a [Simd<T, 2> ; VOICES_PER_VECTOR] {
 
     unsafe { transmute(vector) }
 }
 
-pub fn as_mut_stereo_sample_array<T: SimdElement>(
-    vector: &mut Simd<T, MAX_VECTOR_WIDTH>
+pub fn as_mut_stereo_sample_array<'a, T: SimdElement>(
+    vector: &'a mut Simd<T, MAX_VECTOR_WIDTH>
 ) -> &mut [Simd<T, 2> ; VOICES_PER_VECTOR] {
 
     unsafe { transmute(vector) }

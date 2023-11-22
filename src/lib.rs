@@ -10,7 +10,7 @@ cfg_if::cfg_if! {
         }
     
     } else {
-    
+
         pub use std::simd;
     }
 }

@@ -2,13 +2,13 @@ use super::{*, simd_util::map, smoothing::*};
 
 use std::f32::consts::PI;
 
-#[derive(Default)]
 /// Digital implementation of the analogue SVF Filter, with built-in
 /// parameter smoothing. Based on the one in the book The Art of VA
 /// Filter Design by Vadim Zavalinish
 /// 
 /// Capable of outputing many different filter types,
 /// (highpass, lowpass, bandpass, notch, shelving....)
+#[derive(Default)]
 pub struct SVF<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount
@@ -187,7 +187,7 @@ where
         self.lp = self.s[1].process(self.bp, g);
     }
 
-    /// Get the current (smoothed?) value of the internal gain parameter
+    /// Get the current, potentially smoothed value of the internal gain parameter
     pub fn get_gain(&self) -> Simd<f32, N> {
         self.k.get_current()
     }
