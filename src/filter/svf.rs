@@ -91,7 +91,7 @@ where
         num_samples: usize
     ) {
         let g = self.pre_gain_from_cutoff(cutoff);
-        self.set_values_smoothed(cutoff, res / gain.sqrt(), gain, num_samples);
+        self.set_values_smoothed(g, res / gain.sqrt(), gain, num_samples);
     }
 
     /// Like `Self::set_params_high_shelving` but with smoothing
@@ -128,7 +128,7 @@ where
     ) {
         let m2 = gain.sqrt();
         let g = self.pre_gain_from_cutoff(cutoff);
-        self.set_values(cutoff / m2.sqrt(), res, m2);
+        self.set_values(g / m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output _only_ band-shelving filter shapes
@@ -139,7 +139,7 @@ where
         gain: Simd<f32, N>
     ) {
         let g = self.pre_gain_from_cutoff(cutoff);
-        self.set_values(cutoff, res / gain.sqrt(), gain);
+        self.set_values(g, res / gain.sqrt(), gain);
     }
 
     /// call this if you intend to later output _only_ high-shelving filter shapes
