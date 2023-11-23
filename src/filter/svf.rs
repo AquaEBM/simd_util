@@ -51,21 +51,21 @@ where
         map(cutoff * self.pi_tick, f32::tan)
     }
 
-    fn set_values(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
+    fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
         self.k.set_instantly(gain);
-        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff));
+        self.g.set_instantly(g);
         self.r.set_instantly(res);
     }
 
     fn set_values_smoothed(
         &mut self,
-        cutoff: Simd<f32, N>,
+        g: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
         self.k.set_target(gain, num_samples);
-        self.g.set_target(self.pre_gain_from_cutoff(cutoff), num_samples);
+        self.g.set_target(g, num_samples);
         self.r.set_target(res, num_samples);
     }
 
@@ -77,9 +77,9 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let ratio = cutoff * self.min_tick;
-        let m2 = gain.sqrt().simd_max(ratio * ratio);
-        self.set_values_smoothed(cutoff / m2.sqrt(), res, m2, num_samples);
+        let m2 = gain.sqrt();
+        let g = self.pre_gain_from_cutoff(cutoff);
+        self.set_values_smoothed(g / m2.sqrt(), res, m2, num_samples);
     }
 
     /// Like `Self::set_params_band_shelving` but with smoothing
@@ -101,14 +101,15 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let ratio = self.max_cutoff / cutoff;
-        let m2 = gain.sqrt().simd_min(ratio * ratio);
-        self.set_values_smoothed(cutoff * m2.sqrt(), res, m2, num_samples);
+        let m2 = gain.sqrt();
+        let g = self.pre_gain_from_cutoff(cutoff);
+        self.set_values_smoothed(g * m2.sqrt(), res, m2, num_samples);
     }
 
     /// Like `Self::set_params_non_shelving` but with smoothing
     pub fn set_params_non_shelving_smoothed(
-        &mut self, cutoff: Simd<f32, N>,
+        &mut self,
+        cutoff: Simd<f32, N>,
         res: Simd<f32, N>,
         num_samples: usize
     ) {
@@ -124,8 +125,8 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let ratio = cutoff * self.min_tick;
-        let m2 = gain.sqrt().simd_max(ratio * ratio);
+        let m2 = gain.sqrt();
+        let g = self.pre_gain_from_cutoff(cutoff);
         self.set_values(cutoff / m2.sqrt(), res, m2);
     }
 
@@ -146,16 +147,14 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let ratio = self.max_cutoff / cutoff;
-        let m2 = gain.sqrt().simd_min(ratio * ratio);
-        self.set_values(cutoff * m2.sqrt(), res, m2);
+        let m2 = gain.sqrt();
+        let g = self.pre_gain_from_cutoff(cutoff);
+        self.set_values(g * m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output non-shelving filter shapes
     pub fn set_params_non_shelving(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>) {
-        self.g.set_instantly(self.pre_gain_from_cutoff(cutoff));
-        self.r.set_instantly(res);
-        self.k.set_instantly(Simd::splat(1.));
+        self.set_values(self.pre_gain_from_cutoff(cutoff), res, Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
