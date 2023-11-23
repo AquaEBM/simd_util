@@ -1,7 +1,5 @@
 use super::{*, simd_util::map, smoothing::*};
 
-use std::f32::consts::PI;
-
 /// Digital implementation of the analogue SVF Filter, with built-in
 /// parameter smoothing. Based on the one in the book The Art of VA
 /// Filter Design by Vadim Zavalinish
@@ -17,9 +15,6 @@ where
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N> ; 2],
-    max_cutoff: Simd<f32, N>,
-    min_tick: Simd<f32, N>,
-    pi_tick: Simd<f32, N>,
     x: Simd<f32, N>,
     hp: Simd<f32, N>,
     bp: Simd<f32, N>,
@@ -30,25 +25,13 @@ impl<const N: usize> SVF<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    pub fn set_sample_rate(&mut self, sr: f32) {
-
-        self.max_cutoff = Simd::splat(sr * MAX_CUTOFF_RATIO);
-        self.min_tick = Simd::splat(1. / (sr * MAX_CUTOFF_RATIO));
-        self.pi_tick = Simd::splat(PI / sr);
-    }
-
     pub fn reset(&mut self) {
         
-        *self = Self {
-            max_cutoff: self.max_cutoff,
-            min_tick: self.min_tick,
-            pi_tick: self.pi_tick,
-            ..Default::default()
-        }
+        *self = Self::default()
     }
 
-    fn pre_gain_from_cutoff(&self, cutoff: Simd<f32, N>) -> Simd<f32, N> {
-        map(cutoff * self.pi_tick, f32::tan)
+    fn pre_gain_from_cutoff(&self, w_c: Simd<f32, N>) -> Simd<f32, N> {
+        map(w_c, |x| (x * 0.5).tan())
     }
 
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
@@ -72,49 +55,49 @@ where
     /// Like `Self::set_params_low_shelving` but with smoothing
     pub fn set_params_low_shelving_smoothed(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g / m2.sqrt(), res, m2, num_samples);
     }
 
     /// Like `Self::set_params_band_shelving` but with smoothing
     pub fn set_params_band_shelving_smoothed(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g, res / gain.sqrt(), gain, num_samples);
     }
 
     /// Like `Self::set_params_high_shelving` but with smoothing
     pub fn set_params_high_shelving_smoothed(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g * m2.sqrt(), res, m2, num_samples);
     }
 
     /// Like `Self::set_params_non_shelving` but with smoothing
     pub fn set_params_non_shelving_smoothed(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         num_samples: usize
     ) {
-        self.g.set_target(self.pre_gain_from_cutoff(cutoff), num_samples);
+        self.g.set_target(self.pre_gain_from_cutoff(w_c), num_samples);
         self.r.set_target(res, num_samples);
         self.k.set_instantly(Simd::splat(1.));
     }
@@ -122,41 +105,41 @@ where
     /// call this if you intend to later output _only_ low-shelving filter shapes
     pub fn set_params_low_shelving(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values(g / m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output _only_ band-shelving filter shapes
     pub fn set_params_band_shelving(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values(g, res / gain.sqrt(), gain);
     }
 
     /// call this if you intend to later output _only_ high-shelving filter shapes
     pub fn set_params_high_shelving(
         &mut self,
-        cutoff: Simd<f32, N>,
+        w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(cutoff);
+        let g = self.pre_gain_from_cutoff(w_c);
         self.set_values(g * m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output non-shelving filter shapes
-    pub fn set_params_non_shelving(&mut self, cutoff: Simd<f32, N>, res: Simd<f32, N>) {
-        self.set_values(self.pre_gain_from_cutoff(cutoff), res, Simd::splat(1.));
+    pub fn set_params_non_shelving(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>) {
+        self.set_values(self.pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
