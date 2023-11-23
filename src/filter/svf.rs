@@ -90,6 +90,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
+        let g = self.pre_gain_from_cutoff(cutoff);
         self.set_values_smoothed(cutoff, res / gain.sqrt(), gain, num_samples);
     }
 
@@ -137,6 +138,7 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
+        let g = self.pre_gain_from_cutoff(cutoff);
         self.set_values(cutoff, res / gain.sqrt(), gain);
     }
 
