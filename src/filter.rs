@@ -1,13 +1,10 @@
-use std::ops::Deref;
 use super::*;
 
 pub mod svf;
 pub mod one_pole;
 
-const MAX_CUTOFF_RATIO: f32 = 22000. / 44100.;
-
 #[derive(Default, Clone, Copy)]
-/// Transposed Direct Form II integrator, dereference to get internal (`z^-1`) state
+/// Transposed Direct Form II integrator
 pub struct Integrator<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount
@@ -34,17 +31,6 @@ where
     pub fn reset(&mut self) {
         self.s = Simd::splat(0.);
     }
+
+    pub fn get_current(&self) -> Simd<f32, N> { self.s }
 }
-
-impl<const N: usize> Deref for Integrator<N>
-where
-    LaneCount<N>: SupportedLaneCount
-{
-    type Target = Simd<f32, N>;
-
-    /// internal (`z^-1`) state
-    fn deref(&self) -> &Self::Target {
-        &self.s
-    }
-}
-

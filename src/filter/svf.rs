@@ -30,8 +30,9 @@ where
         *self = Self::default()
     }
 
-    fn pre_gain_from_cutoff(&self, w_c: Simd<f32, N>) -> Simd<f32, N> {
-        map(w_c, |x| (x * 0.5).tan())
+    fn pre_gain_from_cutoff(w_c: Simd<f32, N>) -> Simd<f32, N> {
+
+        map(w_c * Simd::splat(0.5), f32::tan)
     }
 
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
@@ -61,7 +62,7 @@ where
         num_samples: usize
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g / m2.sqrt(), res, m2, num_samples);
     }
 
@@ -73,7 +74,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize
     ) {
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g, res / gain.sqrt(), gain, num_samples);
     }
 
@@ -86,7 +87,7 @@ where
         num_samples: usize
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values_smoothed(g * m2.sqrt(), res, m2, num_samples);
     }
 
@@ -97,7 +98,7 @@ where
         res: Simd<f32, N>,
         num_samples: usize
     ) {
-        self.g.set_target(self.pre_gain_from_cutoff(w_c), num_samples);
+        self.g.set_target(Self::pre_gain_from_cutoff(w_c), num_samples);
         self.r.set_target(res, num_samples);
         self.k.set_instantly(Simd::splat(1.));
     }
@@ -110,7 +111,7 @@ where
         gain: Simd<f32, N>
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values(g / m2.sqrt(), res, m2);
     }
 
@@ -121,7 +122,7 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>
     ) {
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values(g, res / gain.sqrt(), gain);
     }
 
@@ -133,13 +134,13 @@ where
         gain: Simd<f32, N>
     ) {
         let m2 = gain.sqrt();
-        let g = self.pre_gain_from_cutoff(w_c);
+        let g = Self::pre_gain_from_cutoff(w_c);
         self.set_values(g * m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output non-shelving filter shapes
     pub fn set_params_non_shelving(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>) {
-        self.set_values(self.pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
+        self.set_values(Self::pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
@@ -162,11 +163,12 @@ where
     pub fn process(&mut self, sample: Simd<f32, N>) {
 
         let g = self.g.get_current();
-
         let g1 = self.r.get_current() + g;
+        let s1 = self.s[0].get_current();
+        let s2 = self.s[1].get_current();
 
         self.x = sample;
-        self.hp = self.s[0].mul_add(-g1, sample - *self.s[1]) / g1.mul_add(g, Simd::splat(1.));
+        self.hp = ((sample - s2) - s1 * g1) / (g1 * g + Simd::splat(1.));
         self.bp = self.s[0].process(self.hp, g);
         self.lp = self.s[1].process(self.bp, g);
     }
@@ -193,11 +195,12 @@ where
     }
 
     pub fn get_allpass(&self) -> Simd<f32, N> {
-        Simd::splat(2.).mul_add(self.get_bandpass1(), -self.x)
+        let bp1 = self.get_bandpass1();
+        bp1 + bp1 - self.x
     }
 
     pub fn get_notch(&self) -> Simd<f32, N> {
-        self.r.get_current().mul_add(-self.bp, self.x)
+        self.x - self.get_bandpass1()
     }
 
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
@@ -210,7 +213,7 @@ where
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
 
         let bp1 = self.get_bandpass1();
-        self.get_gain().mul_add(bp1, self.x - bp1)
+        bp1.mul_add(self.get_gain(), self.x - bp1)
     }
 
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
