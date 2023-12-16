@@ -11,7 +11,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "core_simd"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#6d10cd1b7f4de5cbd16165f2eea491535869ae38"
+source = "git+https://github.com/rust-lang/portable-simd.git#1273da658ea64245e18466e50d59daa2cc49822e"
 
 [[package]]
 name = "plugin_util"
@@ -25,7 +25,7 @@ dependencies = [
 [[package]]
 name = "std_float"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#6d10cd1b7f4de5cbd16165f2eea491535869ae38"
+source = "git+https://github.com/rust-lang/portable-simd.git#1273da658ea64245e18466e50d59daa2cc49822e"
 dependencies = [
  "core_simd",
 ]
