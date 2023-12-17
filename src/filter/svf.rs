@@ -134,6 +134,7 @@ where
         &mut self,
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
+        _gain: Simd<f32, N>,
         num_samples: usize
     ) {
         self.g.set_target(Self::pre_gain_from_cutoff(w_c), num_samples);
