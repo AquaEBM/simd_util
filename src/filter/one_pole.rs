@@ -5,7 +5,7 @@ pub struct OnePole<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    g: LogSmoother<N>,
+    g1: LinearSmoother<N>,
     k: LogSmoother<N>,
     s: Integrator<N>,
     lp: Simd<f32, N>,
@@ -20,42 +20,39 @@ where
         self.s.reset()
     }
 
-    fn pre_gain_from_cutoff(w_c: Simd<f32, N>) -> Simd<f32, N> {
-        let g = map(w_c * Simd::splat(0.5), f32::tan);
+    fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
+        map(w_c * Simd::splat(0.5), f32::tan)
+    }
 
+    fn g1(g: Simd<f32, N>) -> Simd<f32, N> {
         g / (Simd::splat(1.) + g)
     }
 
     fn set_values(&mut self, g: Simd<f32, N>, k: Simd<f32, N>) {
-        self.g.set_instantly(g);
+        self.g1.set_instantly(Self::g1(g));
         self.k.set_instantly(k);
     }
 
-    /// this pretty much only sets the filter's cutoff to the
-    /// given value and the gain to `1.0`, call this _only_ if you intend to
+    /// call this _only_ if you intend to
     /// output non-shelving filter shapes.
     pub fn set_params(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.set_values(Self::pre_gain_from_cutoff(w_c), gain)
+        self.set_values(Self::g(w_c), gain)
     }
 
     /// call this _only_ if you intend to output low-shelving filter shapes.
     pub fn set_params_low_shelving(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>) {
-        let g = Self::pre_gain_from_cutoff(w_c);
-
         self.k.set_instantly(gain);
-        self.g.set_instantly(g / gain.sqrt());
+        self.g1.set_instantly(Self::g(w_c) / gain.sqrt());
     }
 
     /// call this _only_ if you intend to output high-shelving filter shapes.
     pub fn set_params_high_shelving(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>) {
-        let g = Self::pre_gain_from_cutoff(w_c);
-
         self.k.set_instantly(gain);
-        self.g.set_instantly(g * gain.sqrt());
+        self.g1.set_instantly(Self::g(w_c) * gain.sqrt());
     }
 
-    fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
-        self.g.set_target(g, num_samples);
+    fn set_values_smoothed(&mut self, g1: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
+        self.g1.set_target(g1, num_samples);
         self.k.set_target(k, num_samples);
     }
 
@@ -66,7 +63,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        self.set_values_smoothed(Self::pre_gain_from_cutoff(w_c), gain, num_samples)
+        self.set_values_smoothed(Self::g(w_c), gain, num_samples)
     }
 
     /// like `Self::set_params_low_shelving` but smoothed
@@ -77,7 +74,7 @@ where
         num_samples: usize,
     ) {
         self.set_values_smoothed(
-            Self::pre_gain_from_cutoff(w_c) / gain.sqrt(),
+            Self::g(w_c) / gain.sqrt(),
             gain,
             num_samples,
         )
@@ -91,19 +88,19 @@ where
         num_samples: usize,
     ) {
         self.set_values_smoothed(
-            Self::pre_gain_from_cutoff(w_c) * gain.sqrt(),
+            Self::g(w_c) * gain.sqrt(),
             gain,
             num_samples,
         )
     }
 
-    ///update t.set_instantly(filter's internal parameter smoothers.
+    /// update the filter's internal parameter smoothers.
     ///
-    /// After calling `Self::set_params_smoothed(values, ..., num_samples)` this should
+    /// After calling `Self::set_params_smoothed([values, ...], num_samples)` this should
     /// be called only _once_ per sample, _up to_ `num_samples` times, until
     /// `Self::set_params_smoothed` is to be called again
     pub fn update_smoothers(&mut self) {
-        self.g.tick();
+        self.g1.tick();
         self.k.tick();
     }
 
@@ -115,9 +112,9 @@ where
     /// using `Self::get_{highpass, lowpass, allpass, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
         let s = self.s.get_current();
-        let g = self.g.get_current();
+        let g1 = self.g1.get_current();
 
-        self.lp = self.s.process(sample - s, g);
+        self.lp = self.s.process(sample - s, g1);
         self.hp = sample - self.lp;
     }
 

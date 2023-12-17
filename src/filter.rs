@@ -31,6 +31,7 @@ where
     pub fn reset(&mut self) {
         self.s = Simd::splat(0.);
     }
-
+    
+    /// get current (z^-1) state
     pub fn get_current(&self) -> Simd<f32, N> { self.s }
 }

@@ -12,6 +12,7 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     g: LogSmoother<N>,
+    g2: LinearSmoother<N>,
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N>; 2],
@@ -29,14 +30,22 @@ where
         self.s.iter_mut().for_each(Integrator::reset)
     }
 
-    fn pre_gain_from_cutoff(w_c: Simd<f32, N>) -> Simd<f32, N> {
+    fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
+    fn g2(g: Simd<f32, N>, res: Simd<f32, N>) -> Simd<f32, N> {
+        let one = Simd::splat(1.);
+
+        one / g.mul_add(g + res, one)
+    }
+
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
+        self.r.set_instantly(res);
         self.k.set_instantly(gain);
         self.g.set_instantly(g);
-        self.r.set_instantly(res);
+        self.g2.set_instantly(Self::g2(g, res));
+
     }
 
     /// call this if you intend to later output _only_ low-shelving filter shapes
@@ -47,7 +56,7 @@ where
         gain: Simd<f32, N>,
     ) {
         let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values(g / m2.sqrt(), res, m2);
     }
 
@@ -58,7 +67,7 @@ where
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
     ) {
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values(g, res / gain.sqrt(), gain);
     }
 
@@ -70,13 +79,13 @@ where
         gain: Simd<f32, N>,
     ) {
         let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values(g * m2.sqrt(), res, m2);
     }
 
     /// call this if you intend to later output non-shelving filter shapes
     pub fn set_params(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>, _gain: Simd<f32, N>) {
-        self.set_values(Self::pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
+        self.set_values(Self::g(w_c), res, Simd::splat(1.));
     }
 
     fn set_values_smoothed(
@@ -100,7 +109,7 @@ where
         num_samples: usize,
     ) {
         let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values_smoothed(g / m2.sqrt(), res, m2, num_samples);
     }
 
@@ -112,7 +121,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values_smoothed(g, res / gain.sqrt(), gain, num_samples);
     }
 
@@ -125,7 +134,7 @@ where
         num_samples: usize,
     ) {
         let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
+        let g = Self::g(w_c);
         self.set_values_smoothed(g * m2.sqrt(), res, m2, num_samples);
     }
 
@@ -137,20 +146,22 @@ where
         _gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        self.g.set_target(Self::pre_gain_from_cutoff(w_c), num_samples);
+        self.g.set_target(Self::g(w_c), num_samples);
         self.r.set_target(res, num_samples);
         self.k.set_instantly(Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
     ///
-    /// After calling `Self::set_params_<output_type>_smoothed(values, ..., num_samples)` this should
-    /// be called only _once_ per sample, _up to_ `num_samples` times, until
-    /// that function is to be called again
+    /// After calling `Self::set_params_<output_type>_smoothed(values, ..., num_samples)` this
+    /// function should be called _up to_ `num_samples` times, until, that function is to be
+    /// called again, calling this function more than `num_samples` times might result in
+    /// the internal parameter states diverging from the previously set values
     pub fn update_all_smoothers(&mut self) {
         self.k.tick();
         self.r.tick();
         self.g.tick();
+        self.g2.tick();
     }
 
     /// Update the filter's internal state, given the provided input sample.
@@ -161,12 +172,13 @@ where
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
         let g = self.g.get_current();
-        let g1 = self.r.get_current() + g;
+        let g1 = g + self.r.get_current();
+        let g2 = self.g2.get_current();
         let s1 = self.s[0].get_current();
         let s2 = self.s[1].get_current();
 
         self.x = sample;
-        self.hp = ((sample - s2) - s1 * g1) / (g1 * g + Simd::splat(1.));
+        self.hp = ((sample - s2) - s1 * g1) * g2;
         self.bp = self.s[0].process(self.hp, g);
         self.lp = self.s[1].process(self.bp, g);
     }
