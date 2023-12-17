@@ -130,7 +130,7 @@ where
     }
 
     /// Like `Self::set_params_non_shelving` but with smoothing
-    pub fn set_params_non_shelving_smoothed(
+    pub fn set_params_smoothed(
         &mut self,
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
