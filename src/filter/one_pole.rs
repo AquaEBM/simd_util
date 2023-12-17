@@ -17,7 +17,7 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     pub fn reset(&mut self) {
-        *self = Self::default();
+        self.s.reset()
     }
 
     fn pre_gain_from_cutoff(w_c: Simd<f32, N>) -> Simd<f32, N> {
