@@ -14,5 +14,4 @@ cfg-if = "1.0"
 
 [features]
 
-default = ["non_std_simd"]
 non_std_simd = ["core_simd", "std_float"]
