@@ -51,8 +51,8 @@ where
         self.g1.set_instantly(Self::g(w_c) * gain.sqrt());
     }
 
-    fn set_values_smoothed(&mut self, g1: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
-        self.g1.set_target(g1, num_samples);
+    fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
+        self.g1.set_target(Self::g1(g), num_samples);
         self.k.set_target(k, num_samples);
     }
 
