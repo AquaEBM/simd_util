@@ -12,7 +12,7 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     g: LogSmoother<N>,
-    g2: LinearSmoother<N>,
+    g2: LogSmoother<N>,
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N>; 2],
