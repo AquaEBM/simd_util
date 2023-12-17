@@ -54,12 +54,19 @@ where
         self.g.set_instantly(g * gain.sqrt());
     }
 
-    /// like `Self::set_params` but smoothed
-    pub fn set_params_smoothed(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>, block_len: usize) {
-        self.k.set_target(gain, block_len);
+    fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
+        self.g.set_target(g, num_samples);
+        self.k.set_target(k, num_samples);
+    }
 
-        self.g
-            .set_target(Self::pre_gain_from_cutoff(w_c), block_len);
+    /// like `Self::set_params` but smoothed
+    pub fn set_params_smoothed(
+        &mut self,
+        w_c: Simd<f32, N>,
+        gain: Simd<f32, N>,
+        num_samples: usize,
+    ) {
+        self.set_values_smoothed(Self::pre_gain_from_cutoff(w_c), gain, num_samples)
     }
 
     /// like `Self::set_params_low_shelving` but smoothed
@@ -69,11 +76,11 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        let g = Self::pre_gain_from_cutoff(w_c);
-
-        self.k.set_target(gain, num_samples);
-
-        self.g.set_target(g / gain.sqrt(), num_samples);
+        self.set_values_smoothed(
+            Self::pre_gain_from_cutoff(w_c) / gain.sqrt(),
+            gain,
+            num_samples,
+        )
     }
 
     /// like `Self::set_params_high_shelving` but smoothed.
@@ -83,11 +90,11 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        let g = Self::pre_gain_from_cutoff(w_c);
-
-        self.k.set_target(gain, num_samples);
-
-        self.g.set_target(g * gain.sqrt(), num_samples);
+        self.set_values_smoothed(
+            Self::pre_gain_from_cutoff(w_c) * gain.sqrt(),
+            gain,
+            num_samples,
+        )
     }
 
     ///update t.set_instantly(filter's internal parameter smoothers.
@@ -107,7 +114,6 @@ where
     /// After calling this, you can get different filter outputs
     /// using `Self::get_{highpass, lowpass, allpass, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
-
         let s = self.s.get_current();
         let g = self.g.get_current();
 

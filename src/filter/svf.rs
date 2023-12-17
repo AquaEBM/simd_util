@@ -25,13 +25,11 @@ impl<const N: usize> SVF<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    pub fn reset(&mut self) {
-        
+    pub fn reset(&mut self) { 
         *self = Self::default()
     }
 
     fn pre_gain_from_cutoff(w_c: Simd<f32, N>) -> Simd<f32, N> {
-
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
@@ -39,6 +37,46 @@ where
         self.k.set_instantly(gain);
         self.g.set_instantly(g);
         self.r.set_instantly(res);
+    }
+
+    /// call this if you intend to later output _only_ low-shelving filter shapes
+    pub fn set_params_low_shelving(
+        &mut self,
+        w_c: Simd<f32, N>,
+        res: Simd<f32, N>,
+        gain: Simd<f32, N>
+    ) {
+        let m2 = gain.sqrt();
+        let g = Self::pre_gain_from_cutoff(w_c);
+        self.set_values(g / m2.sqrt(), res, m2);
+    }
+
+    /// call this if you intend to later output _only_ band-shelving filter shapes
+    pub fn set_params_band_shelving(
+        &mut self,
+        w_c: Simd<f32, N>,
+        res: Simd<f32, N>,
+        gain: Simd<f32, N>
+    ) {
+        let g = Self::pre_gain_from_cutoff(w_c);
+        self.set_values(g, res / gain.sqrt(), gain);
+    }
+
+    /// call this if you intend to later output _only_ high-shelving filter shapes
+    pub fn set_params_high_shelving(
+        &mut self,
+        w_c: Simd<f32, N>,
+        res: Simd<f32, N>,
+        gain: Simd<f32, N>
+    ) {
+        let m2 = gain.sqrt();
+        let g = Self::pre_gain_from_cutoff(w_c);
+        self.set_values(g * m2.sqrt(), res, m2);
+    }
+
+    /// call this if you intend to later output non-shelving filter shapes
+    pub fn set_params(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>) {
+        self.set_values(Self::pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
     }
 
     fn set_values_smoothed(
@@ -101,46 +139,6 @@ where
         self.g.set_target(Self::pre_gain_from_cutoff(w_c), num_samples);
         self.r.set_target(res, num_samples);
         self.k.set_instantly(Simd::splat(1.));
-    }
-
-    /// call this if you intend to later output _only_ low-shelving filter shapes
-    pub fn set_params_low_shelving(
-        &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>
-    ) {
-        let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
-        self.set_values(g / m2.sqrt(), res, m2);
-    }
-
-    /// call this if you intend to later output _only_ band-shelving filter shapes
-    pub fn set_params_band_shelving(
-        &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>
-    ) {
-        let g = Self::pre_gain_from_cutoff(w_c);
-        self.set_values(g, res / gain.sqrt(), gain);
-    }
-
-    /// call this if you intend to later output _only_ high-shelving filter shapes
-    pub fn set_params_high_shelving(
-        &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>
-    ) {
-        let m2 = gain.sqrt();
-        let g = Self::pre_gain_from_cutoff(w_c);
-        self.set_values(g * m2.sqrt(), res, m2);
-    }
-
-    /// call this if you intend to later output non-shelving filter shapes
-    pub fn set_params_non_shelving(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>) {
-        self.set_values(Self::pre_gain_from_cutoff(w_c), res, Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
