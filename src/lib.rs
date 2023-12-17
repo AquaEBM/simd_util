@@ -7,11 +7,13 @@ cfg_if::cfg_if! {
         pub mod simd {
             pub use core_simd::simd::*;
             pub use std_float::*;
+            pub use prelude::*;
         }
     
     } else {
 
         pub use std::simd;
+        
     }
 }
 
