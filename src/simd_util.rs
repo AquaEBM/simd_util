@@ -16,7 +16,7 @@ pub const MAX_VECTOR_WIDTH: usize = {
     }
 };
 
-pub const VOICES_PER_VECTOR: usize = MAX_VECTOR_WIDTH / 2;
+pub const STEREO_VOICES_PER_VECTOR: usize = MAX_VECTOR_WIDTH / 2;
 
 pub type Float = Simd<f32, MAX_VECTOR_WIDTH>;
 pub type UInt = Simd<u32, MAX_VECTOR_WIDTH>;
@@ -34,14 +34,14 @@ pub const ONE_F: Float = const_splat(1.);
 
 pub fn as_stereo_sample_array<'a, T: SimdElement>(
     vector: &'a Simd<T, MAX_VECTOR_WIDTH>
-) -> &'a [Simd<T, 2> ; VOICES_PER_VECTOR] {
+) -> &'a [Simd<T, 2> ; STEREO_VOICES_PER_VECTOR] {
 
     unsafe { transmute(vector) }
 }
 
 pub fn as_mut_stereo_sample_array<'a, T: SimdElement>(
     vector: &'a mut Simd<T, MAX_VECTOR_WIDTH>
-) -> &mut [Simd<T, 2> ; VOICES_PER_VECTOR] {
+) -> &mut [Simd<T, 2> ; STEREO_VOICES_PER_VECTOR] {
 
     unsafe { transmute(vector) }
 }
@@ -92,7 +92,7 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
         
             _mm512_mask_i32gather_ps(
                 or.into(),
-                mask.to_bitmask(),
+                transmute(mask),
                 index.into(),
                 slice.as_ptr().cast(),
                 4,
