@@ -5,7 +5,7 @@ pub struct OnePole<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    g1: LinearSmoother<N>,
+    g1: LogSmoother<N>,
     k: LogSmoother<N>,
     s: Integrator<N>,
     lp: Simd<f32, N>,

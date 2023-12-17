@@ -12,7 +12,6 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     g: LogSmoother<N>,
-    g2: LogSmoother<N>,
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N>; 2],
@@ -34,18 +33,10 @@ where
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
-    fn g2(g: Simd<f32, N>, res: Simd<f32, N>) -> Simd<f32, N> {
-        let one = Simd::splat(1.);
-
-        one / g.mul_add(g + res, one)
-    }
-
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.r.set_instantly(res);
         self.k.set_instantly(gain);
         self.g.set_instantly(g);
-        self.g2.set_instantly(Self::g2(g, res));
-
+        self.r.set_instantly(res);
     }
 
     /// call this if you intend to later output _only_ low-shelving filter shapes
@@ -161,7 +152,6 @@ where
         self.k.tick();
         self.r.tick();
         self.g.tick();
-        self.g2.tick();
     }
 
     /// Update the filter's internal state, given the provided input sample.
@@ -172,13 +162,12 @@ where
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
         let g = self.g.get_current();
-        let g1 = g + self.r.get_current();
-        let g2 = self.g2.get_current();
+        let g1 = self.r.get_current() + g;
         let s1 = self.s[0].get_current();
         let s2 = self.s[1].get_current();
 
         self.x = sample;
-        self.hp = ((sample - s2) - s1 * g1) * g2;
+        self.hp = ((sample - s2) - s1 * g1) / (g1 * g + Simd::splat(1.));
         self.bp = self.s[0].process(self.hp, g);
         self.lp = self.s[1].process(self.bp, g);
     }
