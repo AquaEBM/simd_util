@@ -1,8 +1,32 @@
 use super::{simd_util::map, smoothing::*, *};
 
+#[cfg_attr(feature = "nih_plug", derive(Enum))]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
+pub enum FilterMode {
+    #[cfg_attr(feature = "nih_plug", name = "Highpass")]
+    HP,
+    #[cfg_attr(feature = "nih_plug", name = "Lowpass")]
+    LP,
+    #[cfg_attr(feature = "nih_plug", name = "Bandpass")]
+    BP,
+    #[cfg_attr(feature = "nih_plug", name = "Unit Bandpass")]
+    BP1,
+    #[cfg_attr(feature = "nih_plug", name = "Allpass")]
+    #[default]
+    AP,
+    #[cfg_attr(feature = "nih_plug", name = "Notch")]
+    NCH,
+    #[cfg_attr(feature = "nih_plug", name = "High Shelf")]
+    HSH,
+    #[cfg_attr(feature = "nih_plug", name = "Band shelf")]
+    BSH,
+    #[cfg_attr(feature = "nih_plug", name = "Low shelf")]
+    LSH,
+}
+
 /// Digital implementation of the analogue SVF Filter, with built-in
 /// parameter smoothing. Based on the one in the book The Art of VA
-/// Filter Design by Vadim Zavalinish
+/// Filter Design by Vadim Zavalishin
 ///
 /// Capable of outputing many different filter types,
 /// (highpass, lowpass, bandpass, notch, shelving....)
@@ -217,5 +241,47 @@ where
         let m2 = self.get_gain();
         let bp1 = self.get_bandpass1();
         m2.mul_add(m2.mul_add(self.lp, bp1), self.hp)
+    }
+
+    pub fn get_output_function(mode: FilterMode) -> fn(&Self) -> Simd<f32, N> {
+        use FilterMode::*;
+
+        match mode {
+            HP => Self::get_highpass,
+            LP => Self::get_lowpass,
+            BP => Self::get_bandpass,
+            BP1 => Self::get_bandpass1,
+            AP => Self::get_allpass,
+            NCH => Self::get_notch,
+            HSH => Self::get_high_shelf,
+            BSH => Self::get_band_shelf,
+            LSH => Self::get_low_shelf,
+        }
+    }
+
+    pub fn get_update_function(
+        mode: FilterMode,
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>) {
+        use FilterMode::*;
+
+        match mode {
+            HSH => Self::set_params_high_shelving,
+            BSH => Self::set_params_band_shelving,
+            LSH => Self::set_params_low_shelving,
+            _ => Self::set_params,
+        }
+    }
+
+    pub fn get_smoothing_update_function(
+        mode: FilterMode,
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>, usize) {
+        use FilterMode::*;
+
+        match mode {
+            HSH => Self::set_params_high_shelving_smoothed,
+            BSH => Self::set_params_band_shelving_smoothed,
+            LSH => Self::set_params_low_shelving_smoothed,
+            _ => Self::set_params_smoothed,
+        }
     }
 }

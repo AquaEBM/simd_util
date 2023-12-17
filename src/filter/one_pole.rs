@@ -1,5 +1,21 @@
 use super::{simd_util::map, smoothing::*, *};
 
+#[cfg_attr(feature = "nih_plug", derive(Enum))]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
+pub enum FilterMode {
+    #[cfg_attr(feature = "nih_plug", name = "Highpass")]
+    HP,
+    #[cfg_attr(feature = "nih_plug", name = "Lowpass")]
+    LP,
+    #[cfg_attr(feature = "nih_plug", name = "Allpass")]
+    #[default]
+    AP,
+    #[cfg_attr(feature = "nih_plug", name = "Low Shelf")]
+    LSH,
+    #[cfg_attr(feature = "nih_plug", name = "High Shelf")]
+    HSH,
+}
+
 #[derive(Default)]
 pub struct OnePole<const N: usize>
 where
@@ -130,11 +146,47 @@ where
         self.lp - self.hp
     }
 
-    pub fn get_lowshelf(&self) -> Simd<f32, N> {
+    pub fn get_low_shelf(&self) -> Simd<f32, N> {
         self.k.get_current().mul_add(self.lp, self.hp)
     }
 
-    pub fn get_highshelf(&self) -> Simd<f32, N> {
+    pub fn get_high_shelf(&self) -> Simd<f32, N> {
         self.k.get_current().mul_add(self.hp, self.lp)
+    }
+
+    pub fn get_output_function(mode: FilterMode) -> fn(&Self) -> Simd<f32, N> {
+        use FilterMode::*;
+
+        match mode {
+            HP => Self::get_highpass,
+            LP => Self::get_lowpass,
+            AP => Self::get_allpass,
+            HSH => Self::get_high_shelf,
+            LSH => Self::get_low_shelf,
+        }
+    }
+
+    pub fn get_update_function(
+        mode: FilterMode,
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>) {
+        use FilterMode::*;
+
+        match mode {
+            HSH => Self::set_params_high_shelving,
+            LSH => Self::set_params_low_shelving,
+            _ => Self::set_params,
+        }
+    }
+
+    pub fn get_smoothing_update_function(
+        mode: FilterMode,
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, usize) {
+        use FilterMode::*;
+
+        match mode {
+            HSH => Self::set_params_high_shelving_smoothed,
+            LSH => Self::set_params_low_shelving_smoothed,
+            _ => Self::set_params_smoothed,
+        }
     }
 }

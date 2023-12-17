@@ -2,6 +2,7 @@ use super::*;
 
 pub mod svf;
 pub mod one_pole;
+use nih_plug::prelude::Enum;
 
 #[derive(Default, Clone, Copy)]
 /// Transposed Direct Form II integrator
