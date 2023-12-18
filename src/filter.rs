@@ -2,6 +2,8 @@ use super::*;
 
 pub mod svf;
 pub mod one_pole;
+
+#[cfg(feature = "nih_plug")]
 use nih_plug::prelude::Enum;
 
 #[derive(Default, Clone, Copy)]
