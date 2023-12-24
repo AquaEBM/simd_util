@@ -88,14 +88,14 @@ pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    let exponent_addend = Simd::splat(u32::BITS << (f32::MANTISSA_DIGITS - 1));
-    unsafe { Simd::<f32, N>::from_bits(x.to_bits() + exponent_addend).to_int_unchecked() }
+    let max = Simd::splat(u32::MAX as f32);
+    unsafe { (x * max).to_int_unchecked() }
 }
 
 pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    let exponent_subtrahend = Simd::splat(u32::BITS << (f32::MANTISSA_DIGITS - 1));
-    Simd::from_bits(x.cast::<f32>().to_bits() - exponent_subtrahend)
+    let ratio = Simd::splat(1. / u32::MAX as f32);
+    x.cast() * ratio
 }
