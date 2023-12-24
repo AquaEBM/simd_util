@@ -1,4 +1,4 @@
-use super::*;
+use super::{simd::*, simd_util, smoothing};
 
 pub mod svf;
 pub mod one_pole;

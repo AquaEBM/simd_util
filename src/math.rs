@@ -1,4 +1,4 @@
-use super::*;
+use super::simd::*;
 use std::f32::consts::LN_2;
 
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>

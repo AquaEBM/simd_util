@@ -17,8 +17,6 @@ cfg_if::cfg_if! {
     }
 }
 
-use simd::*;
-
 pub mod smoothing;
 pub mod simd_util;
 pub mod math;

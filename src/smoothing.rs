@@ -1,6 +1,4 @@
-use super::*;
-use simd_util::FLOATS_PER_VECTOR;
-use math::pow;
+use super::{math::pow, simd::*, simd_util::FLOATS_PER_VECTOR};
 
 pub trait Smoother {
     type Value;
