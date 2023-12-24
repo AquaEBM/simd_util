@@ -1,70 +1,37 @@
-use super::*;
-use std::mem::transmute;
+use super::simd;
+use simd::{Mask as StdMask, *};
+use std::mem::size_of;
 use cfg_if::cfg_if;
-#[allow(unused_imports)]
-use std::arch::x86_64::*;
+
+#[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
+use {
+    std::arch::x86_64::*,
+    std::mem::transmute,
+};
 
 pub const MAX_VECTOR_WIDTH: usize = {
     if cfg!(any(target_feature = "avx512f")) {
-        16
+        64
     } else if cfg!(any(target_feature = "avx")) {
-        8
+        32
     } else if cfg!(any(target_feature = "sse", target_feature = "neon")) {
-        4
+        16
     } else {
-        2
+        8
     }
 };
 
-pub const STEREO_VOICES_PER_VECTOR: usize = MAX_VECTOR_WIDTH / 2;
+pub const FLOATS_PER_VECTOR: usize = MAX_VECTOR_WIDTH / size_of::<f32>();
 
-pub type Float = Simd<f32, MAX_VECTOR_WIDTH>;
-pub type UInt = Simd<u32, MAX_VECTOR_WIDTH>;
-
-pub type TMask = Mask<i32, MAX_VECTOR_WIDTH>;
-
-pub const ZERO_F: Float = const_splat(0.);
-pub const ONE_F: Float = const_splat(1.);
-
-// Safety argument for the following two functions:
-//  - both referred to types have the same size 
-//  - the type of `vector` has greater alignment that the return type
-//  - the output reference's lifetime is the same as that of the input, so no unbounded lifetimes
-//  - we are transmuting a vector to an array over the same scalar, so values are valid
-
-pub fn as_stereo_sample_array<'a, T: SimdElement>(
-    vector: &'a Simd<T, MAX_VECTOR_WIDTH>
-) -> &'a [Simd<T, 2> ; STEREO_VOICES_PER_VECTOR] {
-
-    unsafe { transmute(vector) }
-}
-
-pub fn as_mut_stereo_sample_array<'a, T: SimdElement>(
-    vector: &'a mut Simd<T, MAX_VECTOR_WIDTH>
-) -> &mut [Simd<T, 2> ; STEREO_VOICES_PER_VECTOR] {
-
-    unsafe { transmute(vector) }
-}
-
-pub fn splat_stereo<T: SimdElement>(pair: Simd<T, 2>) -> Simd<T, MAX_VECTOR_WIDTH> {
-
-    const ZERO_ONE: [usize ; MAX_VECTOR_WIDTH] = {
-        let mut array = [0 ; MAX_VECTOR_WIDTH];
-        let mut i = 1;
-        while i < MAX_VECTOR_WIDTH {
-            array[i] = 1;
-            i += 2;
-        }
-        array
-    };
-
-    simd_swizzle!(pair, ZERO_ONE)
-}
+pub type Float = Simd<f32, FLOATS_PER_VECTOR>;
+pub type UInt = Simd<u32, FLOATS_PER_VECTOR>;
+pub type Mask = StdMask<i32, FLOATS_PER_VECTOR>;
 
 /// Convenience function on simd types when specialized functions aren't
 /// available in the standard library, hoping autovectorization compiles this
 /// into an simd instruction
 
+#[inline]
 pub fn map<T: SimdElement, U: SimdElement, const N: usize>(v: Simd<T, N>, f: impl FnMut(T) -> U) -> Simd<U, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -76,6 +43,7 @@ pub const fn enclosing_div(n: usize, d: usize) -> usize {
     (n + d - 1) / d
 }
 
+#[inline]
 pub const fn const_splat<T: SimdElement, const N: usize>(item: T) -> Simd<T, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -83,23 +51,29 @@ where
     Simd::from_array([item ; N])
 }
 
-// We're using intrinsics for now because u32 gathers aren't in core::simd yet
-pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, or: Float) -> Float {
+// We're using intrinsics for now because u32 gathers aren't in core::simd (yet?)
+#[inline]
+pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: Mask, or: Float) -> Float {
 
     cfg_if! {
 
         if #[cfg(target_feature = "avx512f")] {
-        
+
+            #[cfg(feature = "non_std_simd")]
+            let bitmask = transmute(mask);
+            #[cfg(not(feature = "non_std_simd"))]
+            let bitmask = mask.to_bitmask();
+
             _mm512_mask_i32gather_ps(
                 or.into(),
-                transmute(mask),
+                bitmask,
                 index.into(),
                 slice.as_ptr().cast(),
                 4,
             ).into()
-        
+
         } else if #[cfg(target_feature = "avx2")] {
-        
+
             _mm256_mask_i32gather_ps(
                 or.into(),
                 slice.as_ptr(),
@@ -107,14 +81,15 @@ pub unsafe fn gather_select_unchecked(slice: &[f32], index: UInt, mask: TMask, o
                 transmute(mask), // Why is this __m256, not __m256i? I don't know
                 4
             ).into()
-        
+
         } else {
             Simd::gather_select_unchecked(slice, mask.cast(), index.cast(), or)
         }
     }
 }
 
-pub unsafe fn gather(slice: &[f32], index: UInt) -> Float {
+#[inline]
+pub unsafe fn gather_unchecked(slice: &[f32], index: UInt) -> Float {
 
     cfg_if! {
     
@@ -127,41 +102,7 @@ pub unsafe fn gather(slice: &[f32], index: UInt) -> Float {
             _mm256_i32gather_ps(slice.as_ptr(), index.into(), 4).into()
         
         } else {
-            Simd::gather_select_unchecked(slice, Mask::splat(true), index.cast(), Simd::splat(0.))
+            Simd::gather_or_default(slice, index.cast())
         }
     }
-}
-
-pub fn sum_to_stereo_sample(x: Float) -> f32x2 {
-
-    unsafe { cfg_if! {
-
-        if #[cfg(any(target_feature = "avx512f"))] {
-
-            // MAX_VECTOR_WIDTH = 16
-            let [left1, right1]: [Simd<f32, { MAX_VECTOR_WIDTH / 2 }> ; 2] = transmute(x);
-            let [left2, right2]: [Simd<f32, { MAX_VECTOR_WIDTH / 4 }> ; 2] = transmute(left1 + right1);
-            let [left3, right3]: [Simd<f32, { MAX_VECTOR_WIDTH / 8 }> ; 2] = transmute(left2 + right2);
-
-            left3 + right3
-
-        } else if #[cfg(any(target_feature = "avx"))] {
-
-            // MAX_VECTOR_WIDTH = 8
-            let [left1, right1]: [Simd<f32, { MAX_VECTOR_WIDTH / 2 }> ; 2] = transmute(x);
-            let [left2, right2]: [Simd<f32, { MAX_VECTOR_WIDTH / 4 }> ; 2] = transmute(left1 + right1);
-            left2 + right2
-            
-        } else if #[cfg(any(target_feature = "sse", target_feature = "neon"))] {
-
-            // MAX_VECTOR_WIDTH = 4
-            let [left, right]: [Simd<f32, { MAX_VECTOR_WIDTH / 2 }> ; 2] = transmute(x);
-            left + right
-
-        } else {
-
-            // MAX_VECTOR_WIDTH = 2
-            x
-        }
-    } }
 }

@@ -1,5 +1,5 @@
 use super::*;
-use simd_util::MAX_VECTOR_WIDTH;
+use simd_util::FLOATS_PER_VECTOR;
 use math::pow;
 
 pub trait Smoother {
@@ -13,7 +13,7 @@ pub trait Smoother {
 }
 
 #[derive(Clone, Copy)]
-pub struct LogSmoother<const N: usize = MAX_VECTOR_WIDTH>
+pub struct LogSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -64,7 +64,7 @@ where
 }
 
 #[derive(Default, Clone, Copy)]
-pub struct LinearSmoother<const N: usize = MAX_VECTOR_WIDTH>
+pub struct LinearSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
 {

@@ -19,14 +19,9 @@ impl<const N: usize> Integrator<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    /// Process the integrator circuit with the given pre-gain.
-    /// 
-    /// `g` is usually `cutoff / (2 * sample_rate)` (unprewarped), or
-    /// `tan(PI / sample_rate * cutoff)` (prewarped) in most filter types
-    pub fn process(&mut self, sample: Simd<f32, N>, g: Simd<f32, N>) -> Simd<f32, N> {
-        let v = g * sample;
-        let output = v + self.s;
-        self.s = output + v;
+    pub fn process(&mut self, sample: Simd<f32, N>) -> Simd<f32, N> {
+        let output = sample + self.s;
+        self.s = output + sample;
         output
     }
 

@@ -54,6 +54,8 @@ where
     }
 
     fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
+        // TODO: use a tan approximation to leverage SIMD
+        // instead of calling scalar tan on each lane
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
@@ -185,19 +187,21 @@ where
     /// After calling this, you can get different filter outputs
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     pub fn process(&mut self, sample: Simd<f32, N>) {
+
         let g = self.g.get_current();
-        let g1 = self.r.get_current() + g;
         let s1 = self.s[0].get_current();
         let s2 = self.s[1].get_current();
 
+        let g1 = self.r.get_current() + g;
+
+        self.hp = g1.mul_add(-s1, sample - s2) / g1.mul_add(g, Simd::splat(1.));
+
+        self.bp = self.s[0].process(self.hp * g);
+        self.lp = self.s[1].process(self.bp * g);
         self.x = sample;
-        self.hp = ((sample - s2) - s1 * g1) / (g1 * g + Simd::splat(1.));
-        self.bp = self.s[0].process(self.hp, g);
-        self.lp = self.s[1].process(self.bp, g);
     }
 
-    /// Get the current, potentially smoothed value of the internal gain parameter
-    pub fn get_gain(&self) -> Simd<f32, N> {
+    fn get_gain(&self) -> Simd<f32, N> {
         self.k.get_current()
     }
 

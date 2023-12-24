@@ -37,6 +37,8 @@ where
     }
 
     fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
+        // TODO: use a tan approximation to leverage SIMD
+        // instead of calling scalar tan on each lane
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
@@ -130,7 +132,7 @@ where
         let s = self.s.get_current();
         let g1 = self.g1.get_current();
 
-        self.lp = self.s.process(sample - s, g1);
+        self.lp = self.s.process((sample - s) * g1);
         self.hp = sample - self.lp;
     }
 

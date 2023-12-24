@@ -8,7 +8,7 @@ where
     (b - a).mul_add(t, a)
 }
 
-/// results in undefined behavior if -126 <= i <= 126 doesn't hold
+/// Unspecified results for i not in [-126 ; 126]
 pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -18,8 +18,8 @@ where
     Simd::from_bits((i + max_finite_exp << mantissa_bits).cast())
 }
 
-/// "cheap" 2 ^ x approximation, results in undefined behavior in case of
-/// NAN, inf or subnormal numbers, taylor series already works pretty well since
+/// "cheap" 2 ^ x approximation, Unspecified results if v is
+/// NAN, inf or subnormal. Taylor series already works pretty well here since
 /// the polynomial approximation we need here is in the interval (-0.5, 0.5)
 /// (which is small and centered at zero)
 pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
@@ -43,8 +43,8 @@ where
     int * y
 }
 
-/// Compute floor(log2(x)) as an Int results in undefined behavior
-/// when x is NAN, inf or subnormal
+/// Compute floor(log2(x)) as an Int. Unspecified results
+/// if x is NAN, inf or subnormal
 pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -54,8 +54,8 @@ where
     (x.to_bits().cast() >> mantissa_bits) - max_finite_exp
 }
 
-/// "cheap" log2 approximation, results in undefined behavior in case of
-/// NAN, inf or subnormal numbers.
+/// "cheap" log2 approximation. Unspecified results is v is
+/// NAN, inf or subnormal.
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -88,14 +88,14 @@ pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    let max = Simd::splat(u32::MAX as f32);
-    unsafe { (x * max).to_int_unchecked() }
+    let exponent_addend = Simd::splat(u32::BITS << (f32::MANTISSA_DIGITS - 1));
+    unsafe { Simd::<f32, N>::from_bits(x.to_bits() + exponent_addend).to_int_unchecked() }
 }
 
 pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    let ratio = Simd::splat(1. / u32::MAX as f32);
-    x.cast() * ratio
+    let exponent_subtrahend = Simd::splat(u32::BITS << (f32::MANTISSA_DIGITS - 1));
+    Simd::from_bits(x.cast() - exponent_subtrahend)
 }
