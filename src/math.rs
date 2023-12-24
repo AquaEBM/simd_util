@@ -97,5 +97,5 @@ where
     LaneCount<N>: SupportedLaneCount
 {
     let exponent_subtrahend = Simd::splat(u32::BITS << (f32::MANTISSA_DIGITS - 1));
-    Simd::from_bits(x.cast() - exponent_subtrahend)
+    Simd::from_bits(x.cast::<f32>().to_bits() - exponent_subtrahend)
 }
