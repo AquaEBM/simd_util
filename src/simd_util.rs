@@ -41,6 +41,7 @@ pub const fn enclosing_div(n: usize, d: usize) -> usize {
     (n + d - 1) / d
 }
 
+#[inline]
 pub const fn const_splat<T: SimdElement, const N: usize>(item: T) -> Simd<T, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -49,6 +50,7 @@ where
 }
 
 // We're using intrinsics for now because u32 gathers aren't in core::simd (yet?)
+#[inline]
 pub unsafe fn gather_select_unchecked(ptr: *const f32, index: UInt, mask: Mask, or: Float) -> Float {
 
     cfg_if! {
@@ -85,6 +87,7 @@ pub unsafe fn gather_select_unchecked(ptr: *const f32, index: UInt, mask: Mask, 
     }
 }
 
+#[inline]
 pub unsafe fn gather_unchecked(ptr: *const f32, index: UInt) -> Float {
 
     cfg_if! {
