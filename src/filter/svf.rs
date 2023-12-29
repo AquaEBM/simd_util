@@ -388,7 +388,7 @@ where
 
     pub fn high_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
         let m2 = gain.sqrt();
-        Self::tilting_impedance.scale(m2)
+        Self::tilting_impedance(s, res, gain).scale(m2)
     }
 
     pub fn band_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
