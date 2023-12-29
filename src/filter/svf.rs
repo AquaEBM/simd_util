@@ -330,7 +330,14 @@ where
 
         match filter_mode {
             LP => Self::low_pass_impedance,
-            _ => todo!(),
+            HP => Self::high_pass_impedance,
+            BP => Self::band_pass_impedance,
+            BP1 => Self::unit_band_pass_impedance,
+            AP => Self::all_pass_impedance,
+            NCH => Self::notch_impedance,
+            HSH => Self::high_shelf_impedance,
+            BSH => Self::band_shelf_impedance,
+            LSH => Self::low_shelf_impedance,
         }
     }
 
@@ -381,7 +388,7 @@ where
 
     pub fn high_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
         let m2 = gain.sqrt();
-        Self::tilting_impedance(s, res, gain).scale(m2)
+        Self::tilting_impedance.scale(m2)
     }
 
     pub fn band_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
