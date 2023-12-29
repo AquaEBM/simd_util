@@ -53,12 +53,14 @@ where
         self.s.iter_mut().for_each(Integrator::reset)
     }
 
+    #[inline]
     fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
         // TODO: use a tan approximation to leverage SIMD
         // instead of calling scalar tan on each lane
         map(w_c * Simd::splat(0.5), f32::tan)
     }
 
+    #[inline]
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
         self.k.set_instantly(gain);
         self.g.set_instantly(g);
@@ -66,6 +68,7 @@ where
     }
 
     /// call this if you intend to later output _only_ low-shelving filter shapes
+    #[inline]
     pub fn set_params_low_shelving(
         &mut self,
         w_c: Simd<f32, N>,
@@ -78,6 +81,7 @@ where
     }
 
     /// call this if you intend to later output _only_ band-shelving filter shapes
+    #[inline]
     pub fn set_params_band_shelving(
         &mut self,
         w_c: Simd<f32, N>,
@@ -89,6 +93,7 @@ where
     }
 
     /// call this if you intend to later output _only_ high-shelving filter shapes
+    #[inline]
     pub fn set_params_high_shelving(
         &mut self,
         w_c: Simd<f32, N>,
@@ -101,10 +106,12 @@ where
     }
 
     /// call this if you intend to later output non-shelving filter shapes
+    #[inline]
     pub fn set_params(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>, _gain: Simd<f32, N>) {
         self.set_values(Self::g(w_c), res, Simd::splat(1.));
     }
 
+    #[inline]
     fn set_values_smoothed(
         &mut self,
         g: Simd<f32, N>,
@@ -118,6 +125,7 @@ where
     }
 
     /// Like `Self::set_params_low_shelving` but with smoothing
+    #[inline]
     pub fn set_params_low_shelving_smoothed(
         &mut self,
         w_c: Simd<f32, N>,
@@ -131,6 +139,7 @@ where
     }
 
     /// Like `Self::set_params_band_shelving` but with smoothing
+    #[inline]
     pub fn set_params_band_shelving_smoothed(
         &mut self,
         w_c: Simd<f32, N>,
@@ -143,6 +152,7 @@ where
     }
 
     /// Like `Self::set_params_high_shelving` but with smoothing
+    #[inline]
     pub fn set_params_high_shelving_smoothed(
         &mut self,
         w_c: Simd<f32, N>,
@@ -156,6 +166,7 @@ where
     }
 
     /// Like `Self::set_params_non_shelving` but with smoothing
+    #[inline]
     pub fn set_params_smoothed(
         &mut self,
         w_c: Simd<f32, N>,
@@ -174,6 +185,7 @@ where
     /// function should be called _up to_ `num_samples` times, until, that function is to be
     /// called again, calling this function more than `num_samples` times might result in
     /// the internal parameter states diverging from the previously set values
+    #[inline]
     pub fn update_all_smoothers(&mut self) {
         self.k.tick();
         self.r.tick();
@@ -186,6 +198,7 @@ where
     ///
     /// After calling this, you can get different filter outputs
     /// using `Self::get_{highpass, bandpass, notch, ...}`
+    #[inline]
     pub fn process(&mut self, sample: Simd<f32, N>) {
 
         let g = self.g.get_current();
@@ -201,49 +214,60 @@ where
         self.x = sample;
     }
 
+    #[inline]
     fn get_gain(&self) -> Simd<f32, N> {
         self.k.get_current()
     }
 
-    pub fn get_highpass(&self) -> Simd<f32, N> {
-        self.hp
-    }
-
-    pub fn get_bandpass(&self) -> Simd<f32, N> {
-        self.bp
-    }
-
+    #[inline]
     pub fn get_lowpass(&self) -> Simd<f32, N> {
         self.lp
     }
 
-    pub fn get_bandpass1(&self) -> Simd<f32, N> {
+    #[inline]
+    pub fn get_bandpass(&self) -> Simd<f32, N> {
+        self.bp
+    }
+
+    #[inline]
+    pub fn get_unit_bandpass(&self) -> Simd<f32, N> {
         self.r.get_current() * self.bp
     }
 
+    #[inline]
+    pub fn get_highpass(&self) -> Simd<f32, N> {
+        self.hp
+    }
+
+    #[inline]
     pub fn get_allpass(&self) -> Simd<f32, N> {
-        let bp1 = self.get_bandpass1();
-        bp1 + bp1 - self.x
+        // 2 * bp1 - x
+        self.r.get_current().mul_add(self.bp + self.bp, -self.x)
     }
 
+    #[inline]
     pub fn get_notch(&self) -> Simd<f32, N> {
-        self.x - self.get_bandpass1()
+        // x - bp1
+        self.bp.mul_add(-self.r.get_current(), self.x)
     }
 
+    #[inline]
     pub fn get_high_shelf(&self) -> Simd<f32, N> {
         let m2 = self.get_gain();
-        let bp1 = self.get_bandpass1();
+        let bp1 = self.get_unit_bandpass();
         m2.mul_add(m2.mul_add(self.hp, bp1), self.lp)
     }
 
+    #[inline]
     pub fn get_band_shelf(&self) -> Simd<f32, N> {
-        let bp1 = self.get_bandpass1();
+        let bp1 = self.get_unit_bandpass();
         bp1.mul_add(self.get_gain(), self.x - bp1)
     }
 
+    #[inline]
     pub fn get_low_shelf(&self) -> Simd<f32, N> {
         let m2 = self.get_gain();
-        let bp1 = self.get_bandpass1();
+        let bp1 = self.get_unit_bandpass();
         m2.mul_add(m2.mul_add(self.lp, bp1), self.hp)
     }
 
@@ -251,10 +275,10 @@ where
         use FilterMode::*;
 
         match mode {
-            HP => Self::get_highpass,
             LP => Self::get_lowpass,
             BP => Self::get_bandpass,
-            BP1 => Self::get_bandpass1,
+            BP1 => Self::get_unit_bandpass,
+            HP => Self::get_highpass,
             AP => Self::get_allpass,
             NCH => Self::get_notch,
             HSH => Self::get_high_shelf,
@@ -287,5 +311,81 @@ where
             LSH => Self::set_params_low_shelving_smoothed,
             _ => Self::set_params_smoothed,
         }
+    }
+}
+
+use ::num::One;
+#[cfg(feature = "transfer_funcs")]
+use ::num::{Float, Complex};
+#[cfg(feature = "transfer_funcs")]
+impl<const _N: usize> SVF<_N>
+where
+    LaneCount<_N>: SupportedLaneCount,
+{
+    pub fn get_transfer_function<T: Float>(
+        filter_mode: FilterMode
+    ) -> fn(Complex<T>, T, T) -> Complex<T> {
+        
+        use FilterMode::*;
+
+        match filter_mode {
+            LP => Self::low_pass_impedance,
+            _ => todo!(),
+        }
+    }
+
+    fn two<T: Float>(res: T) -> T {
+        T::from(2f32).unwrap() * res
+    }
+
+    fn h_denominator<T: Float>(s: Complex<T>, res: T) -> Complex<T> {
+        s * (s + Self::two(res)) + T::one()
+    }
+
+    pub fn low_pass_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        Self::h_denominator(s, res).finv()
+    }
+
+    pub fn band_pass_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        s.fdiv(Self::h_denominator(s, res))
+    }
+
+    pub fn unit_band_pass_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        Self::band_pass_impedance(s, res, _gain).scale(Self::two(res))
+    }
+
+    pub fn high_pass_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        (s * s).fdiv(Self::h_denominator(s, res))
+    }
+
+    pub fn all_pass_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        let bp1 = Self::unit_band_pass_impedance(s, res, _gain);
+        bp1 + bp1 - Complex::one()
+    }
+
+    pub fn notch_impedance<T: Float>(s: Complex<T>, res: T, _gain: T) -> Complex<T> {
+        Complex::<T>::one() - Self::unit_band_pass_impedance(s, res, _gain)
+    }
+
+    pub fn tilting_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
+        let m2 = gain.sqrt();
+        let m = m2.sqrt();
+        let sm = s.unscale(m);
+        (s * s + sm.scale(Self::two(res)) + m2.recip()).fdiv(Self::h_denominator(sm, res))
+    }
+
+    pub fn low_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
+        let m2 = gain.sqrt();
+        Self::tilting_impedance(s, res, gain.recip()).scale(m2)
+    }
+
+    pub fn high_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
+        let m2 = gain.sqrt();
+        Self::tilting_impedance(s, res, gain).scale(m2)
+    }
+
+    pub fn band_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
+        let m = gain.sqrt();
+        (s * s + T::one() + Self::two(res) * m).fdiv(Self::h_denominator(s, res * m))
     }
 }
