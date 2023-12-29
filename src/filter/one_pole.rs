@@ -1,4 +1,4 @@
-use super::{simd_util::map, smoothing::*, *};
+use super::{smoothing::*, *};
 
 #[cfg_attr(feature = "nih_plug", derive(Enum))]
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
@@ -39,9 +39,7 @@ where
 
     #[inline]
     fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
-        // TODO: use a tan approximation to leverage SIMD
-        // instead of calling scalar tan on each lane
-        map(w_c * Simd::splat(0.5), f32::tan)
+        math::tan_half_x(w_c)
     }
 
     #[inline]

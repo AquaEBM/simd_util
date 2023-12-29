@@ -15,6 +15,7 @@ num = { version = "0.4.1", optional = true }
 cfg-if = "1.0"
 
 [features]
-default = ["non_std_simd", "transfer_funcs"]
+
+default = ["transfer_funcs", "nih_plug"]
 non_std_simd = ["core_simd", "std_float"]
 transfer_funcs = ["num"]

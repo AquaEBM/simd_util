@@ -7,7 +7,6 @@ cfg_if::cfg_if! {
         pub mod simd {
             pub use core_simd::simd::*;
             pub use std_float::*;
-            pub use prelude::*;
         }
     
     } else {
@@ -21,3 +20,4 @@ pub mod smoothing;
 pub mod simd_util;
 pub mod math;
 pub mod filter;
+use simd::prelude::*;

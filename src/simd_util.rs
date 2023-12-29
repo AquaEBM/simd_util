@@ -60,7 +60,7 @@ pub unsafe fn gather_select_unchecked(ptr: *const f32, index: UInt, mask: Mask, 
             #[cfg(feature = "non_std_simd")]
             let bitmask = mem::transmute(mask);
             #[cfg(not(feature = "non_std_simd"))]
-            let bitmask = mask.to_bitmask();
+            let bitmask = mask.to_bitmask() as __mmask16;
 
             _mm512_mask_i32gather_ps(
                 or.into(),

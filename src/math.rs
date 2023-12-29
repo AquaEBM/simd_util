@@ -1,4 +1,5 @@
-use super::simd::*;
+use super::*;
+use simd::*;
 use std::f32::consts::LN_2;
 
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
@@ -6,6 +7,26 @@ where
     LaneCount<N>: SupportedLaneCount
 {
     (b - a).mul_add(t, a)
+}
+
+// surprisingly efficient/accurate tan(x/2) approximation
+// credit to my uni for the free matlab
+pub fn tan_half_x<const N: usize>(x: Simd<f32, N>) -> Simd<f32, N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    let na = Simd::splat(1. / 15120.);
+    let nb = Simd::splat(-1. / 36.);
+    let nc = Simd::splat(1.);
+    let da = Simd::splat(1. / 504.);
+    let db = Simd::splat(-2. / 9.);
+    let dc = Simd::splat(2.);
+
+    let x2 = x * x;
+    let num = x * x2.mul_add(x2.mul_add(na, nb), nc);
+    let den = x2.mul_add(x2.mul_add(da, db), dc);
+
+    num / den
 }
 
 /// Unspecified results for i not in [-126 ; 126]
