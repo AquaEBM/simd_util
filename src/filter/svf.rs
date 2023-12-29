@@ -393,6 +393,6 @@ where
 
     pub fn band_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
         let m = gain.sqrt();
-        (s * s + T::one() + Self::two(res) * m).fdiv(Self::h_denominator(s, res * m))
+        (s * (s + Self::two(res) / m) + T::one()).fdiv(Self::h_denominator(s, res * m))
     }
 }
