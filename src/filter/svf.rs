@@ -3,25 +3,25 @@ use super::{simd_util::map, smoothing::*, *};
 #[cfg_attr(feature = "nih_plug", derive(Enum))]
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum FilterMode {
-    #[cfg_attr(feature = "nih_plug", name = "Highpass")]
-    HP,
     #[cfg_attr(feature = "nih_plug", name = "Lowpass")]
     LP,
     #[cfg_attr(feature = "nih_plug", name = "Bandpass")]
     BP,
     #[cfg_attr(feature = "nih_plug", name = "Unit Bandpass")]
     BP1,
+    #[cfg_attr(feature = "nih_plug", name = "Highpass")]
+    HP,
     #[cfg_attr(feature = "nih_plug", name = "Allpass")]
     #[default]
     AP,
     #[cfg_attr(feature = "nih_plug", name = "Notch")]
     NCH,
-    #[cfg_attr(feature = "nih_plug", name = "High Shelf")]
-    HSH,
-    #[cfg_attr(feature = "nih_plug", name = "Band shelf")]
-    BSH,
     #[cfg_attr(feature = "nih_plug", name = "Low shelf")]
     LSH,
+    #[cfg_attr(feature = "nih_plug", name = "Band shelf")]
+    BSH,
+    #[cfg_attr(feature = "nih_plug", name = "High Shelf")]
+    HSH,
 }
 
 /// Digital implementation of the analogue SVF Filter, with built-in
@@ -184,7 +184,7 @@ where
     /// After calling `Self::set_params_<output_type>_smoothed(values, ..., num_samples)` this
     /// function should be called _up to_ `num_samples` times, until, that function is to be
     /// called again, calling this function more than `num_samples` times might result in
-    /// the internal parameter states diverging from the previously set values
+    /// the internal parameter states diverging away from the previously set values
     #[inline]
     pub fn update_all_smoothers(&mut self) {
         self.k.tick();
@@ -281,9 +281,9 @@ where
             HP => Self::get_highpass,
             AP => Self::get_allpass,
             NCH => Self::get_notch,
-            HSH => Self::get_high_shelf,
-            BSH => Self::get_band_shelf,
             LSH => Self::get_low_shelf,
+            BSH => Self::get_band_shelf,
+            HSH => Self::get_high_shelf,
         }
     }
 
@@ -293,9 +293,9 @@ where
         use FilterMode::*;
 
         match mode {
-            HSH => Self::set_params_high_shelving,
-            BSH => Self::set_params_band_shelving,
             LSH => Self::set_params_low_shelving,
+            BSH => Self::set_params_band_shelving,
+            HSH => Self::set_params_high_shelving,
             _ => Self::set_params,
         }
     }
@@ -306,17 +306,16 @@ where
         use FilterMode::*;
 
         match mode {
-            HSH => Self::set_params_high_shelving_smoothed,
-            BSH => Self::set_params_band_shelving_smoothed,
             LSH => Self::set_params_low_shelving_smoothed,
+            BSH => Self::set_params_band_shelving_smoothed,
+            HSH => Self::set_params_high_shelving_smoothed,
             _ => Self::set_params_smoothed,
         }
     }
 }
 
-use ::num::One;
 #[cfg(feature = "transfer_funcs")]
-use ::num::{Float, Complex};
+use ::num::{Float, Complex, One};
 #[cfg(feature = "transfer_funcs")]
 impl<const _N: usize> SVF<_N>
 where
@@ -330,14 +329,14 @@ where
 
         match filter_mode {
             LP => Self::low_pass_impedance,
-            HP => Self::high_pass_impedance,
             BP => Self::band_pass_impedance,
             BP1 => Self::unit_band_pass_impedance,
+            HP => Self::high_pass_impedance,
             AP => Self::all_pass_impedance,
             NCH => Self::notch_impedance,
-            HSH => Self::high_shelf_impedance,
-            BSH => Self::band_shelf_impedance,
             LSH => Self::low_shelf_impedance,
+            BSH => Self::band_shelf_impedance,
+            HSH => Self::high_shelf_impedance,
         }
     }
 
@@ -386,13 +385,13 @@ where
         Self::tilting_impedance(s, res, gain.recip()).scale(m2)
     }
 
-    pub fn high_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
-        let m2 = gain.sqrt();
-        Self::tilting_impedance(s, res, gain).scale(m2)
-    }
-
     pub fn band_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
         let m = gain.sqrt();
         (s * (s + Self::two(res) * m) + T::one()).fdiv(Self::h_denominator(s, res / m))
+    }
+
+    pub fn high_shelf_impedance<T: Float>(s: Complex<T>, res: T, gain: T) -> Complex<T> {
+        let m2 = gain.sqrt();
+        Self::tilting_impedance(s, res, gain).scale(m2)
     }
 }
