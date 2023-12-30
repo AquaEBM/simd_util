@@ -35,7 +35,7 @@ pub struct SVF<const N: usize>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    g: LinearSmoother<N>,
+    g: LogSmoother<N>,
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N>; 2],
