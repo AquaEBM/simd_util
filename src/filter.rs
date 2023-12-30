@@ -19,17 +19,20 @@ impl<const N: usize> Integrator<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
+    #[inline]
     pub fn process(&mut self, sample: Simd<f32, N>) -> Simd<f32, N> {
         let output = sample + self.s;
         self.s = output + sample;
         output
     }
 
+    #[inline]
     /// Set the internal (`z^-1`) state to `0.0`
     pub fn reset(&mut self) {
         self.s = Simd::splat(0.);
     }
     
     /// get current (z^-1) state
+    #[inline]
     pub fn get_current(&self) -> Simd<f32, N> { self.s }
 }

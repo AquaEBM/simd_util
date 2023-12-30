@@ -2,6 +2,7 @@ use super::*;
 use simd::*;
 use std::f32::consts::LN_2;
 
+#[inline]
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -30,6 +31,7 @@ where
 }
 
 /// Unspecified results for i not in [-126 ; 126]
+#[inline]
 pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -66,6 +68,7 @@ where
 
 /// Compute floor(log2(x)) as an Int. Unspecified results
 /// if x is NAN, inf or subnormal
+#[inline]
 pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -105,6 +108,7 @@ where
     exp2(log2(base) * exp)
 }
 
+#[inline]
 pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount
@@ -113,6 +117,7 @@ where
     unsafe { (x * max).to_int_unchecked() }
 }
 
+#[inline]
 pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount

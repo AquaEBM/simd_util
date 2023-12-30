@@ -37,25 +37,30 @@ where
 {
     type Value = Simd<f32, N>;
 
+    #[inline]
     fn set_target(&mut self, target: Self::Value, num_samples: usize) {
         let base = target / self.value;
         let exp = Simd::splat(1. / num_samples as f32);
         self.factor = pow(base, exp);
     }
 
+    #[inline]
     fn set_instantly(&mut self, value: Self::Value) {
         self.value = value;
     }
 
+    #[inline]
     fn tick(&mut self) {
         self.value *= self.factor;
     }
 
+    #[inline]
     fn tick_n(&mut self, n: u32) {
         let n = n as i32;
         self.value *= pow(self.factor, Simd::splat(n as f32));
     }
 
+    #[inline]
     fn get_current(&self) -> Self::Value {
         self.value
     }
@@ -76,22 +81,27 @@ where
 {
     type Value = Simd<f32, N>;
 
+    #[inline]
     fn set_target(&mut self, target: Self::Value, num_samples: usize) {
         self.increment = (target - self.value) / Simd::splat(num_samples as f32);
     }
 
+    #[inline]
     fn set_instantly(&mut self, value: Self::Value) {
         self.value = value;
     }
 
+    #[inline]
     fn tick(&mut self) {
         self.value += self.increment;
     }
 
+    #[inline]
     fn tick_n(&mut self, n: u32) {
         self.value += self.increment * Simd::splat(n as f32);
     }
 
+    #[inline]
     fn get_current(&self) -> Self::Value {
         self.value
     }
@@ -108,23 +118,28 @@ where
 {
     type Value = T::Value;
 
+    #[inline]
     fn set_target(&mut self, target: Self::Value, num_samples: usize) {
         self.target = target.clone();
         self.smoother.set_target(target, num_samples);
     }
 
+    #[inline]
     fn set_instantly(&mut self, value: Self::Value) {
         self.smoother.set_instantly(value);
     }
 
+    #[inline]
     fn tick(&mut self) {
         self.smoother.tick()
     }
 
+    #[inline]
     fn tick_n(&mut self, n: u32) {
         self.smoother.tick_n(n)
     }
 
+    #[inline]
     fn get_current(&self) -> Self::Value {
         self.smoother.get_current()
     }
@@ -133,7 +148,8 @@ where
 impl<T: Smoother> CachedTarget<T>
 where
     T::Value: Clone
-{
+{   
+    #[inline]
     pub fn get_target(&self) -> T::Value {
         self.target.clone()
     }
