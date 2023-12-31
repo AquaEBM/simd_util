@@ -17,7 +17,7 @@ pub enum FilterMode {
 }
 
 #[derive(Default)]
-pub struct OnePole<const N: usize>
+pub struct OnePole<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
@@ -148,11 +148,6 @@ where
     }
 
     #[inline]
-    pub fn get_highpass(&self) -> Simd<f32, N> {
-        self.x - self.lp
-    }
-
-    #[inline]
     pub fn get_lowpass(&self) -> Simd<f32, N> {
         self.lp
     }
@@ -160,6 +155,11 @@ where
     #[inline]
     pub fn get_allpass(&self) -> Simd<f32, N> {
         self.lp - self.get_highpass()
+    }
+
+    #[inline]
+    pub fn get_highpass(&self) -> Simd<f32, N> {
+        self.x - self.lp
     }
 
     #[inline]
@@ -176,11 +176,11 @@ where
         use FilterMode::*;
 
         match mode {
-            HP => Self::get_highpass,
             LP => Self::get_lowpass,
             AP => Self::get_allpass,
-            HSH => Self::get_high_shelf,
+            HP => Self::get_highpass,
             LSH => Self::get_low_shelf,
+            HSH => Self::get_high_shelf,
         }
     }
 
@@ -202,9 +202,59 @@ where
         use FilterMode::*;
 
         match mode {
-            HSH => Self::set_params_high_shelving_smoothed,
             LSH => Self::set_params_low_shelving_smoothed,
+            HSH => Self::set_params_high_shelving_smoothed,
             _ => Self::set_params_smoothed,
         }
+    }
+}
+
+#[cfg(feature = "transfer_funcs")]
+impl<const _N: usize> OnePole<_N>
+where
+    LaneCount<_N>: SupportedLaneCount,
+{
+    pub fn get_transfer_function<T: Float>(
+        filter_mode: FilterMode
+    ) -> fn(Complex<T>, T) -> Complex<T> {
+        
+        use FilterMode::*;
+
+        match filter_mode {
+            LP => Self::low_pass_impedance,
+            AP => Self::all_pass_impedance,
+            HP => Self::high_pass_impedance,
+            LSH => Self::low_shelf_impedance,
+            HSH => Self::high_shelf_impedance,
+        }
+    }
+
+    fn h_denominator<T: Float>(s: Complex<T>) -> Complex<T> {
+        s + T::one()
+    }
+
+    pub fn low_pass_impedance<T: Float>(s: Complex<T>, _gain: T) -> Complex<T> {
+        Self::h_denominator(s).finv()
+    }
+
+    pub fn all_pass_impedance<T: Float>(s: Complex<T>, _gain: T) -> Complex<T> {
+        (-s + T::one()).fdiv(Self::h_denominator(s))
+    }
+
+    pub fn high_pass_impedance<T: Float>(s: Complex<T>, _gain: T) -> Complex<T> {
+        s.fdiv(Self::h_denominator(s))
+    }
+
+    pub fn low_shelf_impedance<T: Float>(s: Complex<T>, gain: T) -> Complex<T> {
+        Self::tilting_impedance(s, gain.recip()).scale(gain.sqrt())
+    }
+
+    pub fn tilting_impedance<T: Float>(s: Complex<T>, gain: T) -> Complex<T> {
+        let m = gain.sqrt();
+        (s.scale(m) + T::one()) / (s + m)
+    }
+
+    pub fn high_shelf_impedance<T: Float>(s: Complex<T>, gain: T) -> Complex<T> {
+        Self::tilting_impedance(s, gain).scale(gain.sqrt())
     }
 }

@@ -1,14 +1,17 @@
-use super::{simd::*, smoothing, math};
-
-pub mod svf;
-pub mod one_pole;
+#[cfg(feature = "transfer_funcs")]
+use ::num::{Float, Complex, One};
 
 #[cfg(feature = "nih_plug")]
 use nih_plug::prelude::Enum;
 
+use super::{simd::*, smoothing, math, simd_util::FLOATS_PER_VECTOR};
+
+pub mod svf;
+pub mod one_pole;
+
 #[derive(Default, Clone, Copy)]
 /// Transposed Direct Form II integrator
-pub struct Integrator<const N: usize>
+pub struct Integrator<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
 {

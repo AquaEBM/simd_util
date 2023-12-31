@@ -31,7 +31,7 @@ pub enum FilterMode {
 /// Capable of outputing many different filter types,
 /// (highpass, lowpass, bandpass, notch, shelving....)
 #[derive(Default)]
-pub struct SVF<const N: usize>
+pub struct SVF<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
@@ -312,8 +312,6 @@ where
     }
 }
 
-#[cfg(feature = "transfer_funcs")]
-use ::num::{Float, Complex, One};
 #[cfg(feature = "transfer_funcs")]
 impl<const _N: usize> SVF<_N>
 where
