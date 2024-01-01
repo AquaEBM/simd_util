@@ -1,7 +1,7 @@
 use super::simd;
 use simd::{Simd, SimdElement, LaneCount, SupportedLaneCount};
 
-use std::mem;
+use core::mem;
 use cfg_if::cfg_if;
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
@@ -81,8 +81,10 @@ pub unsafe fn gather_select_unchecked(ptr: *const f32, index: UInt, mask: Mask, 
             ).into()
 
         } else {
+            use simd::num::SimdUint;
+
             let slice = core::slice::from_raw_parts(ptr, 0);
-            Simd::gather_select_unchecked(slice, mask.cast(), simd::SimdUint::cast(index), or)
+            Simd::gather_select_unchecked(slice, mask.cast(), index.cast(), or)
         }
     }
 }
@@ -101,11 +103,13 @@ pub unsafe fn gather_unchecked(ptr: *const f32, index: UInt) -> Float {
             _mm256_i32gather_ps(ptr, index.into(), 4).into()
         
         } else {
+            use simd::num::SimdUint;
+
             let slice = core::slice::from_raw_parts(ptr, 0);
             Simd::gather_select_unchecked(
                 slice,
                 simd::Mask::splat(true),
-                simd::SimdUint::cast(index),
+                index.cast(),
                 Float::splat(0.)
             )
         }
