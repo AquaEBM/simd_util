@@ -10,7 +10,7 @@ pub mod svf;
 pub mod one_pole;
 
 #[derive(Default, Clone, Copy)]
-/// Transposed Direct Form II integrator
+/// Transposed Direct Form II integrator, without the 1/2 pre-gain element
 pub struct Integrator<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
