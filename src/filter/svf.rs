@@ -39,10 +39,10 @@ where
     r: LogSmoother<N>,
     k: LogSmoother<N>,
     s: [Integrator<N>; 2],
-    x: Simd<f32, N>,
-    hp: Simd<f32, N>,
-    bp: Simd<f32, N>,
-    lp: Simd<f32, N>,
+    x: Float<N>,
+    hp: Float<N>,
+    bp: Float<N>,
+    lp: Float<N>,
 }
 
 impl<const N: usize> SVF<N>
@@ -54,12 +54,12 @@ where
     }
 
     #[inline]
-    fn g(w_c: Simd<f32, N>) -> Simd<f32, N> {
+    fn g(w_c: Float<N>) -> Float<N> {
         math::tan_half_x(w_c)
     }
 
     #[inline]
-    fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
+    fn set_values(&mut self, g: Float<N>, res: Float<N>, gain: Float<N>) {
         self.k.set_instantly(gain);
         self.g.set_instantly(g);
         self.r.set_instantly(res);
@@ -69,9 +69,9 @@ where
     #[inline]
     pub fn set_params_low_shelving(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
     ) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
@@ -82,9 +82,9 @@ where
     #[inline]
     pub fn set_params_band_shelving(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
     ) {
         let g = Self::g(w_c);
         self.set_values(g, res / gain.sqrt(), gain);
@@ -94,9 +94,9 @@ where
     #[inline]
     pub fn set_params_high_shelving(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
     ) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
@@ -105,16 +105,16 @@ where
 
     /// call this if you intend to later output non-shelving filter shapes
     #[inline]
-    pub fn set_params(&mut self, w_c: Simd<f32, N>, res: Simd<f32, N>, _gain: Simd<f32, N>) {
+    pub fn set_params(&mut self, w_c: Float<N>, res: Float<N>, _gain: Float<N>) {
         self.set_values(Self::g(w_c), res, Simd::splat(1.));
     }
 
     #[inline]
     fn set_values_smoothed(
         &mut self,
-        g: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        g: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
         num_samples: usize,
     ) {
         self.k.set_target(gain, num_samples);
@@ -126,9 +126,9 @@ where
     #[inline]
     pub fn set_params_low_shelving_smoothed(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
         num_samples: usize,
     ) {
         let m2 = gain.sqrt();
@@ -140,9 +140,9 @@ where
     #[inline]
     pub fn set_params_band_shelving_smoothed(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
         num_samples: usize,
     ) {
         let g = Self::g(w_c);
@@ -153,9 +153,9 @@ where
     #[inline]
     pub fn set_params_high_shelving_smoothed(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        gain: Float<N>,
         num_samples: usize,
     ) {
         let m2 = gain.sqrt();
@@ -167,9 +167,9 @@ where
     #[inline]
     pub fn set_params_smoothed(
         &mut self,
-        w_c: Simd<f32, N>,
-        res: Simd<f32, N>,
-        _gain: Simd<f32, N>,
+        w_c: Float<N>,
+        res: Float<N>,
+        _gain: Float<N>,
         num_samples: usize,
     ) {
         self.g.set_target(Self::g(w_c), num_samples);
@@ -197,7 +197,7 @@ where
     /// After calling this, you can get different filter outputs
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     #[inline]
-    pub fn process(&mut self, sample: Simd<f32, N>) {
+    pub fn process(&mut self, sample: Float<N>) {
 
         let g = self.g.get_current();
         let s1 = self.s[0].get_current();
@@ -213,63 +213,63 @@ where
     }
 
     #[inline]
-    fn get_gain(&self) -> Simd<f32, N> {
+    fn get_gain(&self) -> Float<N> {
         self.k.get_current()
     }
 
     #[inline]
-    pub fn get_lowpass(&self) -> Simd<f32, N> {
+    pub fn get_lowpass(&self) -> Float<N> {
         self.lp
     }
 
     #[inline]
-    pub fn get_bandpass(&self) -> Simd<f32, N> {
+    pub fn get_bandpass(&self) -> Float<N> {
         self.bp
     }
 
     #[inline]
-    pub fn get_unit_bandpass(&self) -> Simd<f32, N> {
+    pub fn get_unit_bandpass(&self) -> Float<N> {
         self.r.get_current() * self.bp
     }
 
     #[inline]
-    pub fn get_highpass(&self) -> Simd<f32, N> {
+    pub fn get_highpass(&self) -> Float<N> {
         self.hp
     }
 
     #[inline]
-    pub fn get_allpass(&self) -> Simd<f32, N> {
+    pub fn get_allpass(&self) -> Float<N> {
         // 2 * bp1 - x
         self.r.get_current().mul_add(self.bp + self.bp, -self.x)
     }
 
     #[inline]
-    pub fn get_notch(&self) -> Simd<f32, N> {
+    pub fn get_notch(&self) -> Float<N> {
         // x - bp1
         self.bp.mul_add(-self.r.get_current(), self.x)
     }
 
     #[inline]
-    pub fn get_high_shelf(&self) -> Simd<f32, N> {
+    pub fn get_high_shelf(&self) -> Float<N> {
         let m2 = self.get_gain();
         let bp1 = self.get_unit_bandpass();
         m2.mul_add(m2.mul_add(self.hp, bp1), self.lp)
     }
 
     #[inline]
-    pub fn get_band_shelf(&self) -> Simd<f32, N> {
+    pub fn get_band_shelf(&self) -> Float<N> {
         let bp1 = self.get_unit_bandpass();
         bp1.mul_add(self.get_gain(), self.x - bp1)
     }
 
     #[inline]
-    pub fn get_low_shelf(&self) -> Simd<f32, N> {
+    pub fn get_low_shelf(&self) -> Float<N> {
         let m2 = self.get_gain();
         let bp1 = self.get_unit_bandpass();
         m2.mul_add(m2.mul_add(self.lp, bp1), self.hp)
     }
 
-    pub fn get_output_function(mode: FilterMode) -> fn(&Self) -> Simd<f32, N> {
+    pub fn get_output_function(mode: FilterMode) -> fn(&Self) -> Float<N> {
         use FilterMode::*;
 
         match mode {
@@ -287,7 +287,7 @@ where
 
     pub fn get_update_function(
         mode: FilterMode,
-    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>) {
+    ) -> fn(&mut Self, Float<N>, Float<N>, Float<N>) {
         use FilterMode::*;
 
         match mode {
@@ -300,7 +300,7 @@ where
 
     pub fn get_smoothing_update_function(
         mode: FilterMode,
-    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>, usize) {
+    ) -> fn(&mut Self, Float<N>, Float<N>, Float<N>, usize) {
         use FilterMode::*;
 
         match mode {
