@@ -66,6 +66,15 @@ where
     int * y
 }
 
+#[inline]
+pub fn semitones_to_ratio<const N: usize>(semitones: Simd<f32, N>) -> Simd<f32, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    let ratio = Simd::splat(1. / 12.);
+    exp2(semitones * ratio)
+}
+
 /// Compute floor(log2(x)) as an Int. Unspecified results
 /// if x is NAN, inf or subnormal
 #[inline]
