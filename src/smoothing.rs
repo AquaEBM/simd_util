@@ -1,4 +1,4 @@
-use super::{math::pow, simd::*, simd_util::{FLOATS_PER_VECTOR, Float}};
+use super::{math::pow, simd::*, simd_util::FLOATS_PER_VECTOR};
 
 pub trait Smoother {
     type Value;
@@ -15,8 +15,8 @@ pub struct LogSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    factor: Float<N>,
-    value: Float<N>,
+    factor: Simd<f32, N>,
+    value: Simd<f32, N>,
 }
 
 impl<const N: usize> Default for LogSmoother<N>
@@ -35,7 +35,7 @@ impl<const N: usize> Smoother for LogSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    type Value = Float<N>;
+    type Value = Simd<f32, N>;
 
     #[inline]
     fn set_target(&mut self, target: Self::Value, num_samples: usize) {
@@ -56,6 +56,7 @@ where
 
     #[inline]
     fn tick_n(&mut self, n: u32) {
+        let n = n as i32;
         self.value *= pow(self.factor, Simd::splat(n as f32));
     }
 
@@ -70,15 +71,15 @@ pub struct LinearSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    increment: Float<N>,
-    value: Float<N>,
+    increment: Simd<f32, N>,
+    value: Simd<f32, N>,
 }
 
 impl<const N: usize> Smoother for LinearSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount
 {
-    type Value = Float<N>;
+    type Value = Simd<f32, N>;
 
     #[inline]
     fn set_target(&mut self, target: Self::Value, num_samples: usize) {

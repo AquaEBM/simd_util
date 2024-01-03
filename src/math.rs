@@ -1,8 +1,9 @@
-use super::{*, simd_util::Float, simd::*};
+use super::*;
+use simd::*;
 use std::f32::consts::LN_2;
 
 #[inline]
-pub fn lerp<const N: usize>(a: Float<N>, b: Float<N>, t: Float<N>) -> Float<N>
+pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -11,7 +12,7 @@ where
 
 // surprisingly efficient/accurate tan(x/2) approximation
 // credit to my uni for the free matlab
-pub fn tan_half_x<const N: usize>(x: Float<N>) -> Float<N>
+pub fn tan_half_x<const N: usize>(x: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -31,7 +32,7 @@ where
 
 /// Unspecified results for i not in [-126 ; 126]
 #[inline]
-pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Float<N>
+pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -44,7 +45,7 @@ where
 /// NAN, inf or subnormal. Taylor series already works pretty well here since
 /// the polynomial approximation we need here is in the interval (-0.5, 0.5)
 /// (which is small and centered at zero)
-pub fn exp2<const N: usize>(v: Float<N>) -> Float<N>
+pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -68,7 +69,7 @@ where
 /// Compute floor(log2(x)) as an Int. Unspecified results
 /// if x is NAN, inf or subnormal
 #[inline]
-pub fn ilog2f<const N: usize>(x: Float<N>) -> Simd<i32, N>
+pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -79,7 +80,7 @@ where
 
 /// "cheap" log2 approximation. Unspecified results is v is
 /// NAN, inf or subnormal.
-pub fn log2<const N: usize>(v: Float<N>) -> Float<N>
+pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -100,7 +101,7 @@ where
     log_exponent + y
 }
 
-pub fn pow<const N: usize>(base: Float<N>, exp: Float<N>) -> Float<N>
+pub fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -108,7 +109,7 @@ where
 }
 
 #[inline]
-pub fn flp_to_fxp<const N: usize>(x: Float<N>) -> Simd<u32, N>
+pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
@@ -117,7 +118,7 @@ where
 }
 
 #[inline]
-pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Float<N>
+pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount
 {
