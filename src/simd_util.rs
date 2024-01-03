@@ -1,8 +1,8 @@
 use super::simd;
-use simd::{LaneCount, Simd, SimdElement, SupportedLaneCount, Mask};
+use simd::{LaneCount, Simd, SimdElement, SupportedLaneCount, Mask, f32x2};
 
 use cfg_if::cfg_if;
-use core::mem;
+use core::mem::{transmute, size_of};
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
 use std::arch::x86_64::*;
@@ -19,7 +19,7 @@ pub const MAX_VECTOR_WIDTH: usize = {
     }
 };
 
-pub const FLOATS_PER_VECTOR: usize = MAX_VECTOR_WIDTH / mem::size_of::<f32>();
+pub const FLOATS_PER_VECTOR: usize = MAX_VECTOR_WIDTH / size_of::<f32>();
 
 pub type Float = Simd<f32, FLOATS_PER_VECTOR>;
 pub type UInt = Simd<u32, FLOATS_PER_VECTOR>;
@@ -65,7 +65,7 @@ pub unsafe fn gather_select_unchecked(
         if #[cfg(target_feature = "avx512f")] {
 
             #[cfg(feature = "non_std_simd")]
-            let bitmask = mem::transmute(enable);
+            let bitmask = transmute(enable);
             #[cfg(not(feature = "non_std_simd"))]
             let bitmask = enable.to_bitmask() as __mmask16;
 
@@ -83,7 +83,7 @@ pub unsafe fn gather_select_unchecked(
                 or.into(),
                 ptr,
                 index.into(),
-                mem::transmute(enable), // Why is this __m256, not __m256i? I don't know
+                transmute(enable), // Why is this __m256, not __m256i? I don't know
                 4
             ).into()
 
@@ -118,6 +118,42 @@ pub unsafe fn gather_unchecked(ptr: *const f32, index: UInt) -> Float {
                 index.cast(),
                 Float::splat(0.)
             )
+        }
+    }
+}
+
+#[inline]
+pub fn sum_to_stereo_sample(x: Float) -> f32x2 {
+    unsafe {
+        cfg_if! {
+
+            if #[cfg(any(target_feature = "avx512f"))] {
+
+                // FLOATS_PER_VECTOR = 16
+                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
+                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = transmute(left1 + right1);
+                let [left3, right3]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = transmute(left2 + right2);
+
+                left3 + right3
+
+            } else if #[cfg(any(target_feature = "avx"))] {
+
+                // FLOATS_PER_VECTOR = 8
+                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
+                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = transmute(left1 + right1);
+                left2 + right2
+
+            } else if #[cfg(any(target_feature = "sse", target_feature = "neon"))] {
+
+                // FLOATS_PER_VECTOR = 4
+                let [left, right]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
+                left + right
+
+            } else {
+
+                // FLOATS_PER_VECTOR = 2
+                x
+            }
         }
     }
 }
