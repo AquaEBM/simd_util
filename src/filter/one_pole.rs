@@ -31,7 +31,7 @@ where
 impl<const N: usize> OnePole<N>
 where
     LaneCount<N>: SupportedLaneCount,
-{   
+{
     #[inline]
     pub fn reset(&mut self) {
         self.s.reset()
@@ -99,11 +99,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        self.set_values_smoothed(
-            Self::g(w_c) / gain.sqrt(),
-            gain,
-            num_samples,
-        )
+        self.set_values_smoothed(Self::g(w_c) / gain.sqrt(), gain, num_samples)
     }
 
     /// like `Self::set_params_high_shelving` but smoothed.
@@ -114,11 +110,7 @@ where
         gain: Simd<f32, N>,
         num_samples: usize,
     ) {
-        self.set_values_smoothed(
-            Self::g(w_c) * gain.sqrt(),
-            gain,
-            num_samples,
-        )
+        self.set_values_smoothed(Self::g(w_c) * gain.sqrt(), gain, num_samples)
     }
 
     /// update the filter's internal parameter smoothers.
@@ -184,9 +176,7 @@ where
         }
     }
 
-    pub fn get_update_function(
-        mode: FilterMode,
-    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>) {
+    pub fn get_update_function(mode: FilterMode) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>) {
         use FilterMode::*;
 
         match mode {
@@ -215,9 +205,8 @@ where
     LaneCount<_N>: SupportedLaneCount,
 {
     pub fn get_transfer_function<T: Float>(
-        filter_mode: FilterMode
+        filter_mode: FilterMode,
     ) -> fn(Complex<T>, T) -> Complex<T> {
-        
         use FilterMode::*;
 
         match filter_mode {

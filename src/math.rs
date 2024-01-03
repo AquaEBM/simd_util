@@ -5,7 +5,7 @@ use std::f32::consts::LN_2;
 #[inline]
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     (b - a).mul_add(t, a)
 }
@@ -14,7 +14,7 @@ where
 // credit to my uni for the free matlab
 pub fn tan_half_x<const N: usize>(x: Simd<f32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let na = Simd::splat(1. / 15120.);
     let nb = Simd::splat(-1. / 36.);
@@ -34,7 +34,7 @@ where
 #[inline]
 pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
     let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
@@ -47,7 +47,7 @@ where
 /// (which is small and centered at zero)
 pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let a = Simd::splat(1.);
     let b = Simd::splat(LN_2);
@@ -71,7 +71,7 @@ where
 #[inline]
 pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
     let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
@@ -82,7 +82,7 @@ where
 /// NAN, inf or subnormal.
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let a = Simd::splat(-1819.0 / 651.0);
     let b = Simd::splat(5.0);
@@ -95,7 +95,7 @@ where
     let zero_exponent = Simd::splat(1f32.to_bits());
 
     let log_exponent = ilog2f(v).cast();
-    let x = Simd::<f32, N>::from_bits(v.to_bits() & mantissa_mask | zero_exponent); 
+    let x = Simd::<f32, N>::from_bits(v.to_bits() & mantissa_mask | zero_exponent);
 
     let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(x.mul_add(f, e), d), c), b), a);
     log_exponent + y
@@ -103,7 +103,7 @@ where
 
 pub fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     exp2(log2(base) * exp)
 }
@@ -111,7 +111,7 @@ where
 #[inline]
 pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let max = Simd::splat(u32::MAX as f32);
     unsafe { (x * max).to_int_unchecked() }
@@ -120,7 +120,7 @@ where
 #[inline]
 pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     let ratio = Simd::splat(1. / u32::MAX as f32);
     x.cast() * ratio

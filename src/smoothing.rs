@@ -13,7 +13,7 @@ pub trait Smoother {
 #[derive(Clone, Copy)]
 pub struct LogSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     factor: Simd<f32, N>,
     value: Simd<f32, N>,
@@ -21,7 +21,7 @@ where
 
 impl<const N: usize> Default for LogSmoother<N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     fn default() -> Self {
         Self {
@@ -33,7 +33,7 @@ where
 
 impl<const N: usize> Smoother for LogSmoother<N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     type Value = Simd<f32, N>;
 
@@ -69,7 +69,7 @@ where
 #[derive(Default, Clone, Copy)]
 pub struct LinearSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     increment: Simd<f32, N>,
     value: Simd<f32, N>,
@@ -77,7 +77,7 @@ where
 
 impl<const N: usize> Smoother for LinearSmoother<N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     type Value = Simd<f32, N>;
 
@@ -114,7 +114,7 @@ pub struct CachedTarget<T: Smoother> {
 
 impl<T: Smoother> Smoother for CachedTarget<T>
 where
-    T::Value: Clone
+    T::Value: Clone,
 {
     type Value = T::Value;
 
@@ -147,8 +147,8 @@ where
 
 impl<T: Smoother> CachedTarget<T>
 where
-    T::Value: Clone
-{   
+    T::Value: Clone,
+{
     #[inline]
     pub fn get_target(&self) -> T::Value {
         self.target.clone()

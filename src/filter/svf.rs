@@ -198,7 +198,6 @@ where
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     #[inline]
     pub fn process(&mut self, sample: Simd<f32, N>) {
-
         let g = self.g.get_current();
         let s1 = self.s[0].get_current();
         let s2 = self.s[1].get_current();
@@ -318,9 +317,8 @@ where
     LaneCount<_N>: SupportedLaneCount,
 {
     pub fn get_transfer_function<T: Float>(
-        filter_mode: FilterMode
+        filter_mode: FilterMode,
     ) -> fn(Complex<T>, T, T) -> Complex<T> {
-        
         use FilterMode::*;
 
         match filter_mode {
