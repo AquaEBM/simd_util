@@ -1,5 +1,5 @@
 use super::simd;
-use simd::{LaneCount, Simd, SimdElement, SupportedLaneCount};
+use simd::{LaneCount, Simd, SimdElement, SupportedLaneCount, Mask};
 
 use cfg_if::cfg_if;
 use core::mem;
@@ -23,7 +23,7 @@ pub const FLOATS_PER_VECTOR: usize = MAX_VECTOR_WIDTH / mem::size_of::<f32>();
 
 pub type Float = Simd<f32, FLOATS_PER_VECTOR>;
 pub type UInt = Simd<u32, FLOATS_PER_VECTOR>;
-pub type Mask = simd::Mask<i32, FLOATS_PER_VECTOR>;
+pub type TMask = Mask<i32, FLOATS_PER_VECTOR>;
 
 /// Convenience function on simd types when specialized functions aren't
 /// available in the standard library, hoping autovectorization compiles this
@@ -57,7 +57,7 @@ where
 pub unsafe fn gather_select_unchecked(
     ptr: *const f32,
     index: UInt,
-    enable: Mask,
+    enable: TMask,
     or: Float,
 ) -> Float {
     cfg_if! {
