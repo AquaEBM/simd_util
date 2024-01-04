@@ -21,9 +21,9 @@ pub const MAX_VECTOR_WIDTH: usize = {
 
 pub const FLOATS_PER_VECTOR: usize = MAX_VECTOR_WIDTH / size_of::<f32>();
 
-pub type Float = Simd<f32, FLOATS_PER_VECTOR>;
-pub type UInt = Simd<u32, FLOATS_PER_VECTOR>;
-pub type TMask = Mask<i32, FLOATS_PER_VECTOR>;
+pub type Float<const N: usize = FLOATS_PER_VECTOR> = Simd<f32, N>;
+pub type UInt<const N: usize = FLOATS_PER_VECTOR> = Simd<u32, N>;
+pub type TMask<const N: usize = FLOATS_PER_VECTOR> = Mask<i32, N>;
 
 /// Convenience function on simd types when specialized functions aren't
 /// available in the standard library, hoping autovectorization compiles this

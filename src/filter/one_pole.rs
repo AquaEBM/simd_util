@@ -75,9 +75,9 @@ where
     }
 
     #[inline]
-    fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, num_samples: usize) {
-        self.g1.set_target(Self::g1(g), num_samples);
-        self.k.set_target(k, num_samples);
+    fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, inc: Simd<f32, N>) {
+        self.g1.set_increment(Self::g1(g), inc);
+        self.k.set_increment(k, inc);
     }
 
     /// like `Self::set_params` but smoothed
@@ -86,9 +86,9 @@ where
         &mut self,
         w_c: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
-        self.set_values_smoothed(Self::g(w_c), gain, num_samples)
+        self.set_values_smoothed(Self::g(w_c), gain, inc)
     }
 
     /// like `Self::set_params_low_shelving` but smoothed
@@ -97,9 +97,9 @@ where
         &mut self,
         w_c: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
-        self.set_values_smoothed(Self::g(w_c) / gain.sqrt(), gain, num_samples)
+        self.set_values_smoothed(Self::g(w_c) / gain.sqrt(), gain, inc)
     }
 
     /// like `Self::set_params_high_shelving` but smoothed.
@@ -108,9 +108,9 @@ where
         &mut self,
         w_c: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
-        self.set_values_smoothed(Self::g(w_c) * gain.sqrt(), gain, num_samples)
+        self.set_values_smoothed(Self::g(w_c) * gain.sqrt(), gain, inc)
     }
 
     /// update the filter's internal parameter smoothers.
@@ -135,7 +135,7 @@ where
         let s = self.s.get_current();
         let g1 = self.g1.get_current();
 
-        self.lp = self.s.process((x - s) * g1);
+        self.lp = self.s.tick((x - s) * g1);
         self.x = x;
     }
 
@@ -188,7 +188,7 @@ where
 
     pub fn get_smoothing_update_function(
         mode: FilterMode,
-    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, usize) {
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>) {
         use FilterMode::*;
 
         match mode {

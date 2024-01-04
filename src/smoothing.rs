@@ -3,10 +3,10 @@ use super::{math::pow, simd::*, simd_util::FLOATS_PER_VECTOR};
 pub trait Smoother {
     type Value;
 
-    fn set_target(&mut self, target: Self::Value, num_samples: usize);
+    fn set_increment(&mut self, target: Self::Value, inc: Self::Value);
     fn set_instantly(&mut self, value: Self::Value);
     fn tick(&mut self);
-    fn tick_n(&mut self, n: u32);
+    fn tick_increments(&mut self, inc: Self::Value);
     fn get_current(&self) -> Self::Value;
 }
 
@@ -38,10 +38,8 @@ where
     type Value = Simd<f32, N>;
 
     #[inline]
-    fn set_target(&mut self, target: Self::Value, num_samples: usize) {
-        let base = target / self.value;
-        let exp = Simd::splat(1. / num_samples as f32);
-        self.factor = pow(base, exp);
+    fn set_increment(&mut self, target: Self::Value, inc: Self::Value) {
+        self.factor = pow(target / self.value, inc);
     }
 
     #[inline]
@@ -55,9 +53,8 @@ where
     }
 
     #[inline]
-    fn tick_n(&mut self, n: u32) {
-        let n = n as i32;
-        self.value *= pow(self.factor, Simd::splat(n as f32));
+    fn tick_increments(&mut self, inc: Self::Value) {
+        self.value *= pow(self.factor, inc);
     }
 
     #[inline]
@@ -82,8 +79,8 @@ where
     type Value = Simd<f32, N>;
 
     #[inline]
-    fn set_target(&mut self, target: Self::Value, num_samples: usize) {
-        self.increment = (target - self.value) / Simd::splat(num_samples as f32);
+    fn set_increment(&mut self, target: Self::Value, inc: Simd<f32, N>) {
+        self.increment = (target - self.value) * inc;
     }
 
     #[inline]
@@ -97,8 +94,8 @@ where
     }
 
     #[inline]
-    fn tick_n(&mut self, n: u32) {
-        self.value += self.increment * Simd::splat(n as f32);
+    fn tick_increments(&mut self, inc: Self::Value) {
+        self.value += self.increment * inc;
     }
 
     #[inline]
@@ -119,9 +116,9 @@ where
     type Value = T::Value;
 
     #[inline]
-    fn set_target(&mut self, target: Self::Value, num_samples: usize) {
+    fn set_increment(&mut self, target: Self::Value, inc: Self::Value) {
         self.target = target.clone();
-        self.smoother.set_target(target, num_samples);
+        self.smoother.set_increment(target, inc);
     }
 
     #[inline]
@@ -135,8 +132,8 @@ where
     }
 
     #[inline]
-    fn tick_n(&mut self, n: u32) {
-        self.smoother.tick_n(n)
+    fn tick_increments(&mut self, inc: Self::Value) {
+        self.smoother.tick_increments(inc)
     }
 
     #[inline]

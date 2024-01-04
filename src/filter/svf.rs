@@ -115,11 +115,11 @@ where
         g: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
-        self.k.set_target(gain, num_samples);
-        self.g.set_target(g, num_samples);
-        self.r.set_target(res, num_samples);
+        self.k.set_increment(gain, inc);
+        self.g.set_increment(g, inc);
+        self.r.set_increment(res, inc);
     }
 
     /// Like `Self::set_params_low_shelving` but with smoothing
@@ -129,11 +129,11 @@ where
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
-        self.set_values_smoothed(g / m2.sqrt(), res, m2, num_samples);
+        self.set_values_smoothed(g / m2.sqrt(), res, m2, inc);
     }
 
     /// Like `Self::set_params_band_shelving` but with smoothing
@@ -143,10 +143,10 @@ where
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
         let g = Self::g(w_c);
-        self.set_values_smoothed(g, res / gain.sqrt(), gain, num_samples);
+        self.set_values_smoothed(g, res / gain.sqrt(), gain, inc);
     }
 
     /// Like `Self::set_params_high_shelving` but with smoothing
@@ -156,11 +156,11 @@ where
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
-        self.set_values_smoothed(g * m2.sqrt(), res, m2, num_samples);
+        self.set_values_smoothed(g * m2.sqrt(), res, m2, inc);
     }
 
     /// Like `Self::set_params_non_shelving` but with smoothing
@@ -170,10 +170,10 @@ where
         w_c: Simd<f32, N>,
         res: Simd<f32, N>,
         _gain: Simd<f32, N>,
-        num_samples: usize,
+        inc: Simd<f32, N>,
     ) {
-        self.g.set_target(Self::g(w_c), num_samples);
-        self.r.set_target(res, num_samples);
+        self.g.set_increment(Self::g(w_c), inc);
+        self.r.set_increment(res, inc);
         self.k.set_instantly(Simd::splat(1.));
     }
 
@@ -206,8 +206,8 @@ where
 
         self.hp = g1.mul_add(-s1, sample - s2) / g1.mul_add(g, Simd::splat(1.));
 
-        self.bp = self.s[0].process(self.hp * g);
-        self.lp = self.s[1].process(self.bp * g);
+        self.bp = self.s[0].tick(self.hp * g);
+        self.lp = self.s[1].tick(self.bp * g);
         self.x = sample;
     }
 
@@ -299,7 +299,7 @@ where
 
     pub fn get_smoothing_update_function(
         mode: FilterMode,
-    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>, usize) {
+    ) -> fn(&mut Self, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>, Simd<f32, N>) {
         use FilterMode::*;
 
         match mode {

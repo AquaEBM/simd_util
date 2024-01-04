@@ -12,10 +12,12 @@ where
 
 // surprisingly efficient/accurate tan(x/2) approximation
 // credit to my uni for the free matlab
+#[inline]
 pub fn tan_half_x<const N: usize>(x: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into constants, hopefully
     let na = Simd::splat(1. / 15120.);
     let nb = Simd::splat(-1. / 36.);
     let nc = Simd::splat(1.);
@@ -36,6 +38,7 @@ pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into constants, hopefully
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
     let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
     Simd::from_bits((i + max_finite_exp << mantissa_bits).cast())
@@ -45,10 +48,12 @@ where
 /// NAN, inf or subnormal. Taylor series already works pretty well here since
 /// the polynomial approximation we need here is in the interval (-0.5, 0.5)
 /// (which is small and centered at zero)
+#[inline]
 pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into constants, hopefully
     let a = Simd::splat(1.);
     let b = Simd::splat(LN_2);
     let c = Simd::splat(LN_2 * LN_2 / 2.);
@@ -66,11 +71,13 @@ where
     int * y
 }
 
+/// This returns 2^(`semitones`/12)
 #[inline]
 pub fn semitones_to_ratio<const N: usize>(semitones: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into a constant, hopefully
     let ratio = Simd::splat(1. / 12.);
     exp2(semitones * ratio)
 }
@@ -82,6 +89,7 @@ pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into constants, hopefully
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
     let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
     (x.to_bits().cast() >> mantissa_bits) - max_finite_exp
@@ -89,17 +97,18 @@ where
 
 /// "cheap" log2 approximation. Unspecified results is v is
 /// NAN, inf or subnormal.
+#[inline]
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into constants, hopefully
     let a = Simd::splat(-1819.0 / 651.0);
     let b = Simd::splat(5.0);
     let c = Simd::splat(-10.0 / 3.0);
     let d = Simd::splat(10.0 / 7.0);
     let e = Simd::splat(-1.0 / 3.0);
     let f = Simd::splat(1.0 / 31.0);
-
     let mantissa_mask = Simd::splat((1 << (f32::MANTISSA_DIGITS - 1)) - 1);
     let zero_exponent = Simd::splat(1f32.to_bits());
 
@@ -122,6 +131,7 @@ pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into a constant, hopefully
     let max = Simd::splat(u32::MAX as f32);
     unsafe { (x * max).to_int_unchecked() }
 }
@@ -131,6 +141,7 @@ pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
+    // optimised into a constant, hopefully
     let ratio = Simd::splat(1. / u32::MAX as f32);
     x.cast() * ratio
 }
