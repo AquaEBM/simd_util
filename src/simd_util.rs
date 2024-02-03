@@ -87,7 +87,6 @@ pub unsafe fn gather_select_unchecked(
             ).into()
 
         } else {
-            use simd::num::SimdUint;
 
             let slice = core::slice::from_raw_parts(ptr, 0);
             Simd::gather_select_unchecked(slice, enable.cast(), index.cast(), or)
@@ -108,12 +107,11 @@ pub unsafe fn gather_unchecked(ptr: *const f32, index: UInt) -> Float {
             _mm256_i32gather_ps(ptr, index.into(), 4).into()
 
         } else {
-            use simd::num::SimdUint;
 
             let slice = core::slice::from_raw_parts(ptr, 0);
             Simd::gather_select_unchecked(
                 slice,
-                simd::Mask::splat(true),
+                Mask::splat(true),
                 index.cast(),
                 Float::splat(0.)
             )
