@@ -20,4 +20,3 @@ pub mod filter;
 pub mod math;
 pub mod simd_util;
 pub mod smoothing;
-use simd::prelude::*;

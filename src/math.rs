@@ -1,5 +1,4 @@
-use super::*;
-use simd::*;
+use super::simd::{*, prelude::*};
 use std::f32::consts::LN_2;
 
 #[inline]
