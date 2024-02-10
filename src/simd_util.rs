@@ -54,7 +54,7 @@ where
 // We're using intrinsics for now because u32 gathers aren't in core::simd (yet?)
 #[inline]
 pub unsafe fn gather_select_unchecked(
-    ptr: *const f32,
+    pointer: *const f32,
     index: UInt,
     enable: TMask,
     or: Float,
@@ -72,7 +72,7 @@ pub unsafe fn gather_select_unchecked(
                 or.into(),
                 bitmask,
                 index.into(),
-                ptr.cast(),
+                pointer.cast(),
                 4,
             ).into()
 
@@ -80,7 +80,7 @@ pub unsafe fn gather_select_unchecked(
 
             _mm256_mask_i32gather_ps(
                 or.into(),
-                ptr,
+                pointer,
                 index.into(),
                 transmute(enable), // Why is this __m256, not __m256i? I don't know
                 4
@@ -88,27 +88,27 @@ pub unsafe fn gather_select_unchecked(
 
         } else {
 
-            let slice = core::slice::from_raw_parts(ptr, 0);
+            let slice = core::slice::from_raw_parts(pointer, 0);
             Simd::gather_select_unchecked(slice, enable.cast(), index.cast(), or)
         }
     }
 }
 
 #[inline]
-pub unsafe fn gather_unchecked(ptr: *const f32, index: UInt) -> Float {
+pub unsafe fn gather_unchecked(pointer: *const f32, index: UInt) -> Float {
     cfg_if! {
 
         if #[cfg(target_feature = "avx512f")] {
 
-            _mm512_i32gather_ps(index.into(), ptr.cast(), 4).into()
+            _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into()
 
         } else if #[cfg(target_feature = "avx2")] {
 
-            _mm256_i32gather_ps(ptr, index.into(), 4).into()
+            _mm256_i32gather_ps(pointer, index.into(), 4).into()
 
         } else {
 
-            let slice = core::slice::from_raw_parts(ptr, 0);
+            let slice = core::slice::from_raw_parts(pointer, 0);
             Simd::gather_select_unchecked(
                 slice,
                 Mask::splat(true),
