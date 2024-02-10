@@ -31,6 +31,15 @@ where
     }
 }
 
+impl<const N: usize> LogSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    pub fn get_current_mut(&mut self) -> &mut Simd<f32, N> {
+        &mut self.value
+    }
+}
+
 impl<const N: usize> Smoother for LogSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
@@ -70,6 +79,15 @@ where
 {
     increment: Simd<f32, N>,
     value: Simd<f32, N>,
+}
+
+impl<const N: usize> LinearSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    pub fn get_current_mut(&mut self) -> &mut Simd<f32, N> {
+        &mut self.value
+    }
 }
 
 impl<const N: usize> Smoother for LinearSmoother<N>
