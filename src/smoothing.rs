@@ -15,8 +15,8 @@ pub struct LogSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    factor: Simd<f32, N>,
-    value: Simd<f32, N>,
+    pub factor: Simd<f32, N>,
+    pub value: Simd<f32, N>,
 }
 
 impl<const N: usize> Default for LogSmoother<N>
@@ -28,15 +28,6 @@ where
             factor: Simd::splat(1.),
             value: Simd::splat(1.),
         }
-    }
-}
-
-impl<const N: usize> LogSmoother<N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    pub fn get_current_mut(&mut self) -> &mut Simd<f32, N> {
-        &mut self.value
     }
 }
 
@@ -77,17 +68,8 @@ pub struct LinearSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    increment: Simd<f32, N>,
-    value: Simd<f32, N>,
-}
-
-impl<const N: usize> LinearSmoother<N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    pub fn get_current_mut(&mut self) -> &mut Simd<f32, N> {
-        &mut self.value
-    }
+    pub increment: Simd<f32, N>,
+    pub value: Simd<f32, N>,
 }
 
 impl<const N: usize> Smoother for LinearSmoother<N>
