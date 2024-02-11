@@ -1,7 +1,7 @@
 use super::simd::{*, prelude::*};
 
 use cfg_if::cfg_if;
-use core::mem::{transmute, size_of};
+use core::{cell::Cell, mem::{size_of, transmute}};
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
 use std::arch::x86_64::*;
@@ -157,15 +157,15 @@ pub fn sum_to_stereo_sample(x: Float) -> f32x2 {
 
 pub const STEREO_VOICES_PER_VECTOR: usize = FLOATS_PER_VECTOR / 2;
 
-// Safety argument for the following two functions:
-//  - both referred to types have the same size, more specifically, 2 * STEREO_VOICES_PER_VECTOR
+// Safety argument for the following three functions:
+//  - both referenced types have the same size, more specifically, 2 * STEREO_VOICES_PER_VECTOR
 // is always equal to FLOATS_PER_VECTOR, because it is always a multiple of 2
 //  - the type of `vector` has greater alignment that of the return type
 //  - the output reference's lifetime is the same as that of the input, so no unbounded lifetimes
 //  - we are transmuting a vector to an array over the same scalar, so values are valid
 
 #[inline]
-pub fn as_stereo_sample_array<T: SimdElement>(
+pub fn split_stereo<T: SimdElement>(
     vector: &Simd<T, FLOATS_PER_VECTOR>,
 ) -> &[Simd<T, 2>; STEREO_VOICES_PER_VECTOR] {
     // SAFETY: see above
@@ -173,10 +173,17 @@ pub fn as_stereo_sample_array<T: SimdElement>(
 }
 
 #[inline]
-pub fn as_mut_stereo_sample_array<T: SimdElement>(
+pub fn split_stereo_mut<T: SimdElement>(
     vector: &mut Simd<T, FLOATS_PER_VECTOR>,
 ) -> &mut [Simd<T, 2>; STEREO_VOICES_PER_VECTOR] {
     // SAFETY: see above
+    unsafe { transmute(vector) }
+}
+
+#[inline]
+pub fn split_stereo_cell<T: SimdElement>(
+    vector: &Cell<Simd<T, FLOATS_PER_VECTOR>>,
+) -> &Cell<[Simd<T, 2> ; STEREO_VOICES_PER_VECTOR]> {
     unsafe { transmute(vector) }
 }
 
@@ -244,7 +251,7 @@ pub fn splat_slot<T: SimdElement>(
     vector: &Simd<T, FLOATS_PER_VECTOR>,
     index: usize,
 ) -> Option<Simd<T, FLOATS_PER_VECTOR>> {
-    let array = as_stereo_sample_array(vector);
+    let array = split_stereo(vector);
 
     array.get(index).copied().map(splat_stereo)
 }
