@@ -1,4 +1,5 @@
-#![feature(portable_simd, stdsimd)]
+#![feature(portable_simd)]
+#![cfg_attr(target_feature = "avx512f", feature(stdarch_x86_avx512))]
 
 cfg_if::cfg_if! {
 
