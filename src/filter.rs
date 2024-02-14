@@ -4,7 +4,7 @@ use ::num::{Complex, Float, One};
 #[cfg(feature = "nih_plug")]
 use nih_plug::prelude::Enum;
 
-use super::{math, simd::*, simd_util::FLOATS_PER_VECTOR, smoothing};
+use super::{math, simd::*, FLOATS_PER_VECTOR, smoothing::*};
 
 pub mod one_pole;
 pub mod svf;

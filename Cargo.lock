@@ -457,17 +457,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "plugin_util"
-version = "0.1.0"
-dependencies = [
- "cfg-if",
- "core_simd",
- "nih_plug",
- "num",
- "std_float",
-]
-
-[[package]]
 name = "powerfmt"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -553,6 +542,17 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "simd_util"
+version = "0.1.0"
+dependencies = [
+ "cfg-if",
+ "core_simd",
+ "nih_plug",
+ "num",
+ "std_float",
 ]
 
 [[package]]

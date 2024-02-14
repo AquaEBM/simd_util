@@ -1,4 +1,4 @@
-use super::{smoothing::*, *};
+use super::*;
 
 #[cfg_attr(feature = "nih_plug", derive(Enum))]
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
@@ -49,8 +49,8 @@ where
 
     #[inline]
     fn set_values(&mut self, g: Simd<f32, N>, k: Simd<f32, N>) {
-        self.g1.set_instantly(Self::g1(g));
-        self.k.set_instantly(k);
+        self.g1.set_val_instantly(Self::g1(g));
+        self.k.set_val_instantly(k);
     }
 
     /// call this _only_ if you intend to
@@ -63,21 +63,21 @@ where
     /// call this _only_ if you intend to output low-shelving filter shapes.
     #[inline]
     pub fn set_params_low_shelving(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.k.set_instantly(gain);
-        self.g1.set_instantly(Self::g(w_c) / gain.sqrt());
+        self.k.set_val_instantly(gain);
+        self.g1.set_val_instantly(Self::g(w_c) / gain.sqrt());
     }
 
     /// call this _only_ if you intend to output high-shelving filter shapes.
     #[inline]
     pub fn set_params_high_shelving(&mut self, w_c: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.k.set_instantly(gain);
-        self.g1.set_instantly(Self::g(w_c) * gain.sqrt());
+        self.k.set_val_instantly(gain);
+        self.g1.set_val_instantly(Self::g(w_c) * gain.sqrt());
     }
 
     #[inline]
     fn set_values_smoothed(&mut self, g: Simd<f32, N>, k: Simd<f32, N>, inc: Simd<f32, N>) {
-        self.g1.set_increment(Self::g1(g), inc);
-        self.k.set_increment(k, inc);
+        self.g1.set_target(Self::g1(g), inc);
+        self.k.set_target(k, inc);
     }
 
     /// like `Self::set_params` but smoothed
@@ -120,8 +120,8 @@ where
     /// `Self::set_params_smoothed` is to be called again
     #[inline]
     pub fn update_smoothers(&mut self) {
-        self.g1.tick();
-        self.k.tick();
+        self.g1.tick1();
+        self.k.tick1();
     }
 
     /// Update the filter's internal state, given the provided input sample.

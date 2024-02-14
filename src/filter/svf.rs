@@ -1,4 +1,4 @@
-use super::{smoothing::*, *};
+use super::*;
 
 #[cfg_attr(feature = "nih_plug", derive(Enum))]
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Default, PartialOrd, Ord, Hash)]
@@ -60,9 +60,9 @@ where
 
     #[inline]
     fn set_values(&mut self, g: Simd<f32, N>, res: Simd<f32, N>, gain: Simd<f32, N>) {
-        self.k.set_instantly(gain);
-        self.g.set_instantly(g);
-        self.r.set_instantly(res);
+        self.k.set_val_instantly(gain);
+        self.g.set_val_instantly(g);
+        self.r.set_val_instantly(res);
     }
 
     /// call this if you intend to later output _only_ low-shelving filter shapes
@@ -117,9 +117,9 @@ where
         gain: Simd<f32, N>,
         inc: Simd<f32, N>,
     ) {
-        self.k.set_increment(gain, inc);
-        self.g.set_increment(g, inc);
-        self.r.set_increment(res, inc);
+        self.k.set_target(gain, inc);
+        self.g.set_target(g, inc);
+        self.r.set_target(res, inc);
     }
 
     /// Like `Self::set_params_low_shelving` but with smoothing
@@ -172,9 +172,9 @@ where
         _gain: Simd<f32, N>,
         inc: Simd<f32, N>,
     ) {
-        self.g.set_increment(Self::g(w_c), inc);
-        self.r.set_increment(res, inc);
-        self.k.set_instantly(Simd::splat(1.));
+        self.g.set_target(Self::g(w_c), inc);
+        self.r.set_target(res, inc);
+        self.k.set_val_instantly(Simd::splat(1.));
     }
 
     /// Update the filter's internal parameter smoothers.
@@ -185,9 +185,9 @@ where
     /// the internal parameter states diverging away from the previously set values
     #[inline]
     pub fn update_all_smoothers(&mut self) {
-        self.k.tick();
-        self.r.tick();
-        self.g.tick();
+        self.k.tick1();
+        self.r.tick1();
+        self.g.tick1();
     }
 
     /// Update the filter's internal state, given the provided input sample.

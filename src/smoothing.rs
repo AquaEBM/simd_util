@@ -1,12 +1,12 @@
-use super::{math::pow, simd::*, simd_util::FLOATS_PER_VECTOR};
+use super::{math::pow, simd::*, FLOATS_PER_VECTOR};
 
 pub trait Smoother {
     type Value;
 
-    fn set_increment(&mut self, target: Self::Value, inc: Self::Value);
-    fn set_instantly(&mut self, value: Self::Value);
-    fn tick(&mut self);
-    fn tick_increments(&mut self, inc: Self::Value);
+    fn set_target(&mut self, target: Self::Value, dt: Self::Value);
+    fn set_val_instantly(&mut self, value: Self::Value);
+    fn tick1(&mut self);
+    fn tick(&mut self, k: Self::Value);
     fn get_current(&self) -> &Self::Value;
 }
 
@@ -38,23 +38,23 @@ where
     type Value = Simd<f32, N>;
 
     #[inline]
-    fn set_increment(&mut self, target: Self::Value, inc: Self::Value) {
-        self.factor = pow(target / self.value, inc);
+    fn set_target(&mut self, target: Self::Value, dt: Self::Value) {
+        self.factor = pow(target / self.value, dt);
     }
 
     #[inline]
-    fn set_instantly(&mut self, value: Self::Value) {
+    fn set_val_instantly(&mut self, value: Self::Value) {
         self.value = value;
     }
 
     #[inline]
-    fn tick(&mut self) {
+    fn tick1(&mut self) {
         self.value *= self.factor;
     }
 
     #[inline]
-    fn tick_increments(&mut self, inc: Self::Value) {
-        self.value *= pow(self.factor, inc);
+    fn tick(&mut self, k: Self::Value) {
+        self.value *= pow(self.factor, k);
     }
 
     #[inline]
@@ -79,23 +79,23 @@ where
     type Value = Simd<f32, N>;
 
     #[inline]
-    fn set_increment(&mut self, target: Self::Value, inc: Simd<f32, N>) {
-        self.increment = (target - self.value) * inc;
+    fn set_target(&mut self, target: Self::Value, k: Simd<f32, N>) {
+        self.increment = (target - self.value) * k;
     }
 
     #[inline]
-    fn set_instantly(&mut self, value: Self::Value) {
+    fn set_val_instantly(&mut self, value: Self::Value) {
         self.value = value;
     }
 
     #[inline]
-    fn tick(&mut self) {
+    fn tick1(&mut self) {
         self.value += self.increment;
     }
 
     #[inline]
-    fn tick_increments(&mut self, inc: Self::Value) {
-        self.value += self.increment * inc;
+    fn tick(&mut self, dt: Self::Value) {
+        self.value += self.increment * dt;
     }
 
     #[inline]
@@ -116,24 +116,24 @@ where
     type Value = T::Value;
 
     #[inline]
-    fn set_increment(&mut self, target: Self::Value, inc: Self::Value) {
+    fn set_target(&mut self, target: Self::Value, dt: Self::Value) {
         self.target = target.clone();
-        self.smoother.set_increment(target, inc);
+        self.smoother.set_target(target, dt);
     }
 
     #[inline]
-    fn set_instantly(&mut self, value: Self::Value) {
-        self.smoother.set_instantly(value);
+    fn set_val_instantly(&mut self, value: Self::Value) {
+        self.smoother.set_val_instantly(value);
     }
 
     #[inline]
-    fn tick(&mut self) {
-        self.smoother.tick()
+    fn tick1(&mut self) {
+        self.smoother.tick1()
     }
 
     #[inline]
-    fn tick_increments(&mut self, inc: Self::Value) {
-        self.smoother.tick_increments(inc)
+    fn tick(&mut self, dt: Self::Value) {
+        self.smoother.tick(dt)
     }
 
     #[inline]
@@ -142,12 +142,64 @@ where
     }
 }
 
-impl<T: Smoother> CachedTarget<T>
+impl<T: Smoother> CachedTarget<T> {
+    #[inline]
+    pub fn get_target(&self) -> &T::Value {
+        &self.target
+    }
+
+    #[inline]
+    pub fn inner(&self) -> &T {
+        &self.smoother
+    }
+}
+
+pub struct CachedPrevious<T: Smoother> {
+    smoother: T,
+    prev_val: T::Value,
+}
+
+impl<T: Smoother> Smoother for CachedPrevious<T>
 where
     T::Value: Clone,
 {
+    type Value = T::Value;
+
     #[inline]
-    pub fn get_target(&self) -> T::Value {
-        self.target.clone()
+    fn set_target(&mut self, target: Self::Value, dt: Self::Value) {
+        self.prev_val = self.smoother.get_current().clone();
+        self.smoother.set_target(target, dt);
+    }
+
+    #[inline]
+    fn set_val_instantly(&mut self, value: Self::Value) {
+        self.smoother.set_val_instantly(value);
+    }
+
+    #[inline]
+    fn tick1(&mut self) {
+        self.smoother.tick1()
+    }
+
+    #[inline]
+    fn tick(&mut self, dt: Self::Value) {
+        self.smoother.tick(dt)
+    }
+
+    #[inline]
+    fn get_current(&self) -> &Self::Value {
+        self.smoother.get_current()
+    }
+}
+
+impl<T: Smoother> CachedPrevious<T> {
+    #[inline]
+    pub fn get_previous(&self) -> &T::Value {
+        &self.prev_val
+    }
+
+    #[inline]
+    pub fn inner(&self) -> &T {
+        &self.smoother
     }
 }
