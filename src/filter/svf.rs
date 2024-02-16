@@ -198,11 +198,11 @@ where
     /// using `Self::get_{highpass, bandpass, notch, ...}`
     #[inline]
     pub fn process(&mut self, sample: Simd<f32, N>) {
-        let g = *self.g.get_current();
+        let g = self.g.get_current();
         let s1 = self.s[0].get_current();
         let s2 = self.s[1].get_current();
 
-        let g1 = *self.r.get_current() + g;
+        let g1 = self.r.get_current() + g;
 
         self.hp = g1.mul_add(-s1, sample - s2) / g1.mul_add(g, Simd::splat(1.));
 
@@ -213,7 +213,7 @@ where
 
     #[inline]
     fn get_gain(&self) -> Simd<f32, N> {
-        *self.k.get_current()
+        self.k.get_current()
     }
 
     #[inline]
@@ -245,7 +245,7 @@ where
     #[inline]
     pub fn get_notch(&self) -> Simd<f32, N> {
         // x - bp1
-        self.bp.mul_add(-*self.r.get_current(), self.x)
+        self.bp.mul_add(-self.r.get_current(), self.x)
     }
 
     #[inline]
