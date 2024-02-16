@@ -1,6 +1,4 @@
-use core::simd::num::SimdFloat;
-
-use super::{math::{exp2, log2, pow}, simd::*, FLOATS_PER_VECTOR};
+use super::{math::{exp2, log2, pow}, simd::{*, num::SimdFloat}, FLOATS_PER_VECTOR};
 
 pub trait Smoother<const N: usize>
 where
