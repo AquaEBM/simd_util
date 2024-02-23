@@ -20,6 +20,7 @@ where
     let na = Simd::splat(1. / 15120.);
     let nb = Simd::splat(-1. / 36.);
     let nc = Simd::splat(1.);
+    
     let da = Simd::splat(1. / 504.);
     let db = Simd::splat(-2. / 9.);
     let dc = Simd::splat(2.);
