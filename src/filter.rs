@@ -4,17 +4,17 @@ use ::num::{Complex, Float, One};
 #[cfg(feature = "nih_plug")]
 use nih_plug::prelude::Enum;
 
-use super::{math, simd::*, FLOATS_PER_VECTOR, smoothing::*};
+use super::{math, simd::*, smoothing::*, FLOATS_PER_VECTOR};
 
 pub mod one_pole;
 pub mod svf;
 
 #[derive(Default, Clone, Copy)]
 /// Transposed Direct Form II Trapezoidal Integrator, but without the `0.5` pre-gain.
-/// 
+///
 /// Specifically, let `x[n]` be the input signal, `y[n]` be the output signal, and `v[n]`
 /// be the internal state.
-/// 
+///
 /// This system's difference equation is:
 /// ```ignore
 /// y[n] = x[n] + v[n-1]

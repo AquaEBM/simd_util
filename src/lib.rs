@@ -20,10 +20,13 @@ pub mod filter;
 pub mod math;
 pub mod smoothing;
 
-use simd::{*, prelude::*};
+use simd::{prelude::*, *};
 
 use cfg_if::cfg_if;
-use core::{cell::Cell, mem::{size_of, transmute}};
+use core::{
+    cell::Cell,
+    mem::{size_of, transmute},
+};
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
 use std::arch::x86_64::*;
@@ -205,7 +208,7 @@ pub fn split_stereo_mut<T: SimdElement>(
 #[inline]
 pub fn split_stereo_cell<T: SimdElement>(
     vector: &Cell<Simd<T, FLOATS_PER_VECTOR>>,
-) -> &Cell<[Simd<T, 2> ; STEREO_VOICES_PER_VECTOR]> {
+) -> &Cell<[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]> {
     unsafe { transmute(vector) }
 }
 

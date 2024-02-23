@@ -1,4 +1,8 @@
-use super::{math::{exp2, log2, pow}, simd::{*, num::SimdFloat}, FLOATS_PER_VECTOR};
+use super::{
+    math::{exp2, log2, pow},
+    simd::{num::SimdFloat, *},
+    FLOATS_PER_VECTOR,
+};
 
 pub trait Smoother<const N: usize>
 where
@@ -92,7 +96,7 @@ where
     fn set_target(&mut self, target: Simd<f32, N>, t: Simd<f32, N>) {
         self.increment = (target - self.value) / t;
     }
-    
+
     #[inline]
     fn set_target_recip(&mut self, target: Simd<f32, N>, t_recip: Simd<f32, N>) {
         self.increment = (target - self.value) * t_recip;
@@ -137,7 +141,7 @@ where
         self.smoother.set_target(target, t);
         self.t = t;
     }
-    
+
     #[inline]
     fn set_target_recip(&mut self, target: Simd<f32, N>, t_recip: Simd<f32, N>) {
         self.smoother.set_target_recip(target, t_recip);
