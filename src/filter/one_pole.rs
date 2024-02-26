@@ -134,9 +134,9 @@ where
     pub fn process(&mut self, x: Simd<f32, N>) {
         let s = self.s.get_current();
         let g1 = self.g1.get_current();
-
-        self.lp = self.s.tick((x - s) * g1);
+        
         self.x = x;
+        self.lp = self.s.tick((x - s) * g1);
     }
 
     #[inline]

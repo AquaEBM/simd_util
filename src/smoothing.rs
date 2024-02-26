@@ -124,6 +124,7 @@ where
     }
 }
 
+#[derive(Default, Clone, Copy)]
 pub struct Bounded<T: Smoother> {
     pub t: T::Value,
     pub smoother: T,
@@ -145,6 +146,21 @@ where
 {
     const ONE: Self = Self::from_array([1. ; N]);
 }
+
+impl<const N: usize> Zero for Simd<f64, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    const ZERO: Self = Self::from_array([0. ; N]);
+}
+
+impl<const N: usize> One for Simd<f64, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    const ONE: Self = Self::from_array([1. ; N]);
+}
+
 
 impl<T: Smoother> Smoother for Bounded<T>
 where
@@ -184,5 +200,55 @@ where
     
     fn tick1(&mut self) {
         self.smoother.tick(Self::Value::ONE)
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+pub struct ExpSmoother<const N: usize>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    alpha: Simd<f32, N>,
+    target: Simd<f32, N>,
+    current: Simd<f32, N>,
+}
+
+impl<const N: usize> Smoother for ExpSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    type Value = Simd<f32, N>;
+
+    fn set_target(&mut self, target: Self::Value, t: Self::Value) {
+        self.target = target;
+        // ~= log2(0.001)
+        let w = Simd::splat(-9.965_784_285);
+        self.alpha = exp2(w / t);
+    }
+
+    fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value) {
+        self.target = target;
+        // ~= log2(0.001)
+        let w = Simd::splat(-9.965784285);
+        self.alpha = exp2(w * t_recip);
+    }
+
+    fn set_val_instantly(&mut self, target: Self::Value) {
+        self.target = target;
+        self.current = target;
+    }
+
+    fn tick(&mut self, t: Self::Value) {
+        let x = &mut self.current;
+        *x = pow(self.alpha, t).mul_add(self.target - *x, *x);
+    }
+
+    fn tick1(&mut self) {
+        let x = &mut self.current;
+        *x = self.alpha.mul_add(self.target - *x, *x);
+    }
+
+    fn get_current(&self) -> Self::Value {
+        self.current
     }
 }

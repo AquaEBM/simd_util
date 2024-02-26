@@ -227,8 +227,8 @@ pub fn splat_stereo<T: SimdElement>(pair: Simd<T, 2>) -> Simd<T, FLOATS_PER_VECT
     simd_swizzle!(pair, ZERO_ONE)
 }
 
-/// return a vector where values on the left channel
-/// are on the right and vice-versa
+/// Return a vector where values at the even
+/// indices are on the odd ones and vice-versa
 #[inline]
 pub fn swap_stereo<T: SimdElement>(v: Simd<T, FLOATS_PER_VECTOR>) -> Simd<T, FLOATS_PER_VECTOR> {
     const FLIP_PAIRS: [usize; FLOATS_PER_VECTOR] = {
@@ -279,4 +279,12 @@ pub fn splat_slot<T: SimdElement>(
     let array = split_stereo(vector);
 
     array.get(index).copied().map(splat_stereo)
+}
+
+#[inline]
+pub unsafe fn splat_slot_unchecked<T: SimdElement>(
+    vector: &Simd<T, FLOATS_PER_VECTOR>,
+    index: usize,
+) -> Simd<T, FLOATS_PER_VECTOR> {
+    splat_stereo(*split_stereo(vector).get_unchecked(index))
 }
