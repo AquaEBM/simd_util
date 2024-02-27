@@ -82,7 +82,7 @@ where
 }
 
 /// Compute floor(log2(x)) as an Int. Unspecified results
-/// if x is NAN, inf or subnormal
+/// if x is NAN, inf, negative or subnormal
 #[inline]
 pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
@@ -95,7 +95,7 @@ where
 }
 
 /// "cheap" log2 approximation. Unspecified results is v is
-/// NAN, inf or subnormal.
+/// NAN, inf, negative, or subnormal.
 #[inline]
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
@@ -118,6 +118,7 @@ where
     log_exponent + y
 }
 
+#[inline]
 pub fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,

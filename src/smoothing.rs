@@ -1,9 +1,9 @@
-use core::ops::{Div, SubAssign};
-
 use super::{
     math::{exp2, log2, pow},
-    simd::{cmp::SimdOrd, *},
+    simd::*,
     FLOATS_PER_VECTOR,
+    Float,
+    TMask
 };
 
 pub trait Smoother {
@@ -23,8 +23,8 @@ pub struct LogSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    pub factor: Simd<f32, N>,
-    pub value: Simd<f32, N>,
+    pub factor: Float<N>,
+    pub value: Float<N>,
 }
 
 impl<const N: usize> Default for LogSmoother<N>
@@ -43,7 +43,7 @@ impl<const N: usize> Smoother for LogSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    type Value = Simd<f32, N>;
+    type Value = Float<N>;
 
     #[inline]
     fn set_target(&mut self, target: Self::Value, t: Self::Value) {
@@ -58,7 +58,7 @@ where
     #[inline]
     fn set_val_instantly(&mut self, target: Self::Value) {
         self.value = target;
-        self.factor = Self::Value::ONE;
+        self.factor = Simd::splat(1.0);
     }
 
     #[inline]
@@ -82,15 +82,15 @@ pub struct LinearSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    pub increment: Simd<f32, N>,
-    pub value: Simd<f32, N>,
+    pub increment: Float<N>,
+    pub value: Float<N>,
 }
 
 impl<const N: usize> Smoother for LinearSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    type Value = Simd<f32, N>;
+    type Value = Float<N>;
 
     #[inline]
     fn set_target(&mut self, target: Self::Value, t: Self::Value) {
@@ -104,7 +104,7 @@ where
 
     #[inline]
     fn set_val_instantly(&mut self, target: Self::Value) {
-        self.increment = Self::Value::ZERO;
+        self.increment = Simd::splat(0.0);
         self.value = target;
     }
 
@@ -124,131 +124,32 @@ where
     }
 }
 
-#[derive(Default, Clone, Copy)]
-pub struct Bounded<T: Smoother> {
-    pub t: T::Value,
-    pub smoother: T,
-}
-
-pub trait Zero { const ZERO: Self; }
-pub trait One { const ONE: Self; }
-
-impl<const N: usize> Zero for Simd<f32, N>
+pub struct GenericSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    const ZERO: Self = Self::from_array([0. ; N]);
+    pub current: Float<N>,
+    pub target: Float<N>,
 }
 
-impl<const N: usize> One for Simd<f32, N>
+impl<const N: usize> GenericSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    const ONE: Self = Self::from_array([1. ; N]);
-}
-
-impl<const N: usize> Zero for Simd<f64, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    const ZERO: Self = Self::from_array([0. ; N]);
-}
-
-impl<const N: usize> One for Simd<f64, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    const ONE: Self = Self::from_array([1. ; N]);
-}
-
-
-impl<T: Smoother> Smoother for Bounded<T>
-where
-    T::Value: Zero + One + SubAssign + Div<Output = T::Value> + Clone + SimdOrd,
-{
-    type Value = T::Value;
-
     #[inline]
-    fn set_target(&mut self, target: Self::Value, t: Self::Value) {
-        self.smoother.set_target(target, t.clone());
-        self.t = t;
-    }
-
-    #[inline]
-    fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value) {
-        self.smoother.set_target_recip(target, t_recip.clone());
-        self.t = Self::Value::ONE / t_recip;
-    }
-
-    #[inline]
-    fn set_val_instantly(&mut self, target: Self::Value) {
-        self.t = Self::Value::ZERO;
-        self.smoother.set_val_instantly(target);
-    }
-
-    #[inline]
-    fn tick(&mut self, mut t: Self::Value) {
-        t = t.clone().simd_min(self.t.clone());
-        self.smoother.tick(t.clone());
-        self.t -= t;
-    }
-
-    #[inline]
-    fn get_current(&self) -> Self::Value {
-        self.smoother.get_current()
-    }
-    
-    fn tick1(&mut self) {
-        self.smoother.tick(Self::Value::ONE)
-    }
-}
-
-#[derive(Default, Clone, Copy)]
-pub struct ExpSmoother<const N: usize>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    alpha: Simd<f32, N>,
-    target: Simd<f32, N>,
-    current: Simd<f32, N>,
-}
-
-impl<const N: usize> Smoother for ExpSmoother<N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    type Value = Simd<f32, N>;
-
-    fn set_target(&mut self, target: Self::Value, t: Self::Value) {
-        self.target = target;
-        // ~= log2(0.001)
-        let w = Simd::splat(-9.965_784_285);
-        self.alpha = exp2(w / t);
-    }
-
-    fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value) {
-        self.target = target;
-        // ~= log2(0.001)
-        let w = Simd::splat(-9.965784285);
-        self.alpha = exp2(w * t_recip);
-    }
-
-    fn set_val_instantly(&mut self, target: Self::Value) {
-        self.target = target;
-        self.current = target;
-    }
-
-    fn tick(&mut self, t: Self::Value) {
+    pub fn smooth_exp(&mut self, alpha: Float<N>) {
         let x = &mut self.current;
-        *x = pow(self.alpha, t).mul_add(self.target - *x, *x);
+        *x = alpha.mul_add(self.target - *x, *x);
     }
 
-    fn tick1(&mut self) {
-        let x = &mut self.current;
-        *x = self.alpha.mul_add(self.target - *x, *x);
+    #[inline]
+    pub fn set_val_instantly(&mut self, target: Float<N>, mask: &TMask<N>) {
+        self.target = mask.select(target, self.target);
+        self.current = mask.select(target, self.current);
     }
 
-    fn get_current(&self) -> Self::Value {
-        self.current
+    #[inline]
+    pub fn set_target(&mut self, target: Float<N>, mask: &TMask<N>) {
+        self.target = mask.select(target, self.target);
     }
 }
