@@ -2,9 +2,9 @@
 use ::num::{Complex, Float, One};
 
 #[cfg(feature = "nih_plug")]
-use nih_plug::prelude::Enum;
+use ::nih_plug::prelude::Enum;
 
-use super::{math, simd::*, smoothing::*, FLOATS_PER_VECTOR};
+use super::{math, simd::*, smoothing::*, FLOATS_PER_VECTOR, Float};
 
 pub mod one_pole;
 pub mod svf;
@@ -28,7 +28,7 @@ pub struct Integrator<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    s: Simd<f32, N>,
+    s: Float<N>,
 }
 
 impl<const N: usize> Integrator<N>
@@ -39,7 +39,7 @@ where
     /// update the system's internal state (`v[n]`),
     /// and return the system's next output (`y[n]`)
     #[inline]
-    pub fn tick(&mut self, sample: Simd<f32, N>) -> Simd<f32, N> {
+    pub fn tick(&mut self, sample: Float<N>) -> Float<N> {
         let output = sample + self.s;
         self.s = output + sample;
         output
@@ -53,7 +53,7 @@ where
 
     /// Get the current `v[n]` state
     #[inline]
-    pub fn get_current(&self) -> Simd<f32, N> {
+    pub fn get_current(&self) -> Float<N> {
         self.s
     }
 }

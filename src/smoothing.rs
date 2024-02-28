@@ -1,18 +1,19 @@
 use super::{
     math::{exp2, log2, pow},
-    simd::*,
-    FLOATS_PER_VECTOR,
-    Float,
-    TMask
+    simd::{num::SimdFloat, *},
+    Float, TMask, FLOATS_PER_VECTOR,
 };
 
 pub trait Smoother {
-
-    type Value;
+    type Value: SimdFloat;
 
     fn set_target(&mut self, target: Self::Value, t: Self::Value);
-    fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value);
-    fn set_val_instantly(&mut self, target: Self::Value);
+    #[inline]
+    fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value) {
+        self.set_target(target, t_recip.recip());
+    }
+    fn set_val_instantly(&mut self, target: Self::Value, mask: &<Self::Value as SimdFloat>::Mask);
+    fn set_all_vals_instantly(&mut self, target: Self::Value);
     fn tick(&mut self, t: Self::Value);
     fn tick1(&mut self);
     fn get_current(&self) -> Self::Value;
@@ -39,6 +40,16 @@ where
     }
 }
 
+impl<const N: usize> LogSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount
+{
+    #[inline]
+    pub fn scale(&mut self, scale: Float<N>) {
+        self.value *= scale;
+    }
+}
+
 impl<const N: usize> Smoother for LogSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
@@ -56,7 +67,13 @@ where
     }
 
     #[inline]
-    fn set_val_instantly(&mut self, target: Self::Value) {
+    fn set_val_instantly(&mut self, target: Self::Value, mask: &TMask<N>) {
+        self.factor = mask.select(Simd::splat(1.), self.factor);
+        self.value = mask.select(target, self.value);
+    }
+
+    #[inline]
+    fn set_all_vals_instantly(&mut self, target: Self::Value) {
         self.value = target;
         self.factor = Simd::splat(1.0);
     }
@@ -86,6 +103,17 @@ where
     pub value: Float<N>,
 }
 
+impl<const N: usize> LinearSmoother<N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    #[inline]
+    pub fn scale(&mut self, scale: Float<N>) {
+        self.value *= scale;
+        self.increment *= scale;
+    }
+}
+
 impl<const N: usize> Smoother for LinearSmoother<N>
 where
     LaneCount<N>: SupportedLaneCount,
@@ -103,7 +131,13 @@ where
     }
 
     #[inline]
-    fn set_val_instantly(&mut self, target: Self::Value) {
+    fn set_val_instantly(&mut self, target: Self::Value, mask: &TMask<N>) {
+        self.increment = mask.select(Simd::splat(0.), self.increment);
+        self.value = mask.select(target, self.value);
+    }
+
+    #[inline]
+    fn set_all_vals_instantly(&mut self, target: Self::Value) {
         self.increment = Simd::splat(0.0);
         self.value = target;
     }
