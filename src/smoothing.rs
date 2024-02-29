@@ -158,6 +158,7 @@ where
     }
 }
 
+#[derive(Default, Clone, Copy)]
 pub struct GenericSmoother<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
