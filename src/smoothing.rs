@@ -173,8 +173,9 @@ where
 {
     #[inline]
     pub fn smooth_exp(&mut self, alpha: Float<N>) {
-        let x = &mut self.current;
-        *x = alpha.mul_add(self.target - *x, *x);
+        let y = &mut self.current;
+        let x = self.target;
+        *y = alpha.mul_add(*y - x, x);
     }
 
     #[inline]
