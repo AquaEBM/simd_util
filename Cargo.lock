@@ -81,9 +81,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "cc"
-version = "1.0.88"
+version = "1.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f341c093d19155a6e41631ce5971aac4e9a868262212153124c15fa22d1cdc"
+checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
 
 [[package]]
 name = "cfg-if"
@@ -115,7 +115,7 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 [[package]]
 name = "core_simd"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#fbc9efa364db3cc17fa8c395dff06a3d704dad9c"
+source = "git+https://github.com/rust-lang/portable-simd.git#5794c837bc605c4cd9dbb884285976dfdb293cce"
 
 [[package]]
 name = "crossbeam"
@@ -278,7 +278,7 @@ dependencies = [
 [[package]]
 name = "nih_plug"
 version = "0.0.0"
-source = "git+https://github.com/robbert-vdh/nih-plug.git#b2586ded4892efa2b5c3991f903fa16e85e0263e"
+source = "git+https://github.com/robbert-vdh/nih-plug.git#0d608592b537b2e4ac855ea7d81e914630f09757"
 dependencies = [
  "anyhow",
  "anymap",
@@ -309,7 +309,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_derive"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug.git#b2586ded4892efa2b5c3991f903fa16e85e0263e"
+source = "git+https://github.com/robbert-vdh/nih-plug.git#0d608592b537b2e4ac855ea7d81e914630f09757"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -561,7 +561,7 @@ checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
 [[package]]
 name = "std_float"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#fbc9efa364db3cc17fa8c395dff06a3d704dad9c"
+source = "git+https://github.com/rust-lang/portable-simd.git#5794c837bc605c4cd9dbb884285976dfdb293cce"
 dependencies = [
  "core_simd",
 ]

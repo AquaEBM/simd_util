@@ -53,12 +53,13 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     // optimised into constants, hopefully
+    // LN_2^n / n!
     let a = Simd::splat(1.);
     let b = Simd::splat(LN_2);
-    let c = Simd::splat(LN_2 * LN_2 / 2.);
-    let d = Simd::splat(LN_2 * LN_2 * LN_2 / 6.);
-    let e = Simd::splat(LN_2 * LN_2 * LN_2 * LN_2 / 24.);
-    let f = Simd::splat(LN_2 * LN_2 * LN_2 * LN_2 * LN_2 / 120.);
+    let c = Simd::splat(0.2402265069591007);
+    let d = Simd::splat(0.005550410866482157);
+    let e = Simd::splat(0.009618129107628477);
+    let f = Simd::splat(0.001333355814642844);
 
     let rounded = v.round();
 
@@ -132,7 +133,7 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     // optimised into a constant, hopefully
-    let max = Simd::splat(u32::MAX as f32);
+    let max = Simd::splat((1u64 << u32::BITS) as f32);
     unsafe { (x * max).to_int_unchecked() }
 }
 
@@ -142,6 +143,6 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     // optimised into a constant, hopefully
-    let ratio = Simd::splat(1. / u32::MAX as f32);
+    let ratio = Simd::splat(1. / (1u64 << u32::BITS) as f32);
     x.cast() * ratio
 }
