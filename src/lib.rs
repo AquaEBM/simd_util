@@ -230,7 +230,7 @@ pub fn split_stereo_cell<T: SimdElement>(
 #[inline]
 pub fn split_stereo_cell_slice<T: SimdElement>(
     vectors: &[Cell<Simd<T, FLOATS_PER_VECTOR>>],
-) -> &[Cell<[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]>] {
+) -> &[[Cell<Simd<T, 2>>; STEREO_VOICES_PER_VECTOR]] {
     unsafe { transmute(vectors) }
 }
 
