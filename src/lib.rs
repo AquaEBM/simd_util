@@ -25,7 +25,7 @@ use simd::{prelude::*, *};
 use cfg_if::cfg_if;
 use core::{
     cell::Cell,
-    mem::{size_of, transmute}, slice,
+    mem::{size_of, transmute},
 };
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
