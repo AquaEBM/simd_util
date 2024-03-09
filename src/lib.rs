@@ -201,11 +201,8 @@ pub fn split_stereo<T: SimdElement>(
 #[inline]
 pub fn split_stereo_slice<T: SimdElement>(
     vectors: &[Simd<T, FLOATS_PER_VECTOR>],
-) -> &[Simd<T, 2>] {
-    unsafe { slice::from_raw_parts(
-        vectors.as_ptr().cast(),
-        vectors.len().unchecked_mul(STEREO_VOICES_PER_VECTOR),
-    ) }
+) -> &[[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]] {
+    unsafe { transmute(vectors) }
 }
 
 #[inline]
@@ -219,11 +216,8 @@ pub fn split_stereo_mut<T: SimdElement>(
 #[inline]
 pub fn split_stereo_slice_mut<T: SimdElement>(
     vectors: &mut [Simd<T, FLOATS_PER_VECTOR>],
-) -> &mut [Simd<T, 2>] {
-    unsafe { slice::from_raw_parts_mut(
-        vectors.as_mut_ptr().cast(),
-        vectors.len().unchecked_mul(STEREO_VOICES_PER_VECTOR),
-    ) }
+) -> &mut [[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]] {
+    unsafe { transmute(vectors) }
 }
 
 #[inline]
@@ -236,11 +230,8 @@ pub fn split_stereo_cell<T: SimdElement>(
 #[inline]
 pub fn split_stereo_cell_slice<T: SimdElement>(
     vectors: &[Cell<Simd<T, FLOATS_PER_VECTOR>>],
-) -> &[Cell<Simd<T, 2>>] {
-    unsafe { slice::from_raw_parts(
-        vectors.as_ptr().cast(),
-        vectors.len().unchecked_mul(STEREO_VOICES_PER_VECTOR),
-    ) }
+) -> &[Cell<[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]>] {
+    unsafe { transmute(vectors) }
 }
 
 #[inline]
