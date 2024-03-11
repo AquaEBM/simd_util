@@ -310,3 +310,16 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
 ) -> Simd<T, FLOATS_PER_VECTOR> {
     splat_stereo(*split_stereo(vector).get_unchecked(index))
 }
+
+pub trait MaskAny {
+    fn any(&self) -> bool;
+}
+
+impl<T: MaskElement, const N: usize> MaskAny for Mask<T, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn any(&self) -> bool {
+        (*self).any()
+    }
+}
