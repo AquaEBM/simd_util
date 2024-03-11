@@ -12,7 +12,7 @@ pub trait Smoother {
     fn set_target_recip(&mut self, target: Self::Value, t_recip: Self::Value) {
         self.set_target(target, t_recip.recip());
     }
-    fn set_val_instantly(&mut self, target: Self::Value, mask: &<Self::Value as SimdFloat>::Mask);
+    fn set_val_instantly(&mut self, target: Self::Value, mask: <Self::Value as SimdFloat>::Mask);
     fn set_all_vals_instantly(&mut self, target: Self::Value);
     fn tick(&mut self, t: Self::Value);
     fn tick1(&mut self);
@@ -67,7 +67,7 @@ where
     }
 
     #[inline]
-    fn set_val_instantly(&mut self, target: Self::Value, mask: &TMask<N>) {
+    fn set_val_instantly(&mut self, target: Self::Value, mask: TMask<N>) {
         self.factor = mask.select(Simd::splat(1.), self.factor);
         self.value = mask.select(target, self.value);
     }
@@ -131,7 +131,7 @@ where
     }
 
     #[inline]
-    fn set_val_instantly(&mut self, target: Self::Value, mask: &TMask<N>) {
+    fn set_val_instantly(&mut self, target: Self::Value, mask: TMask<N>) {
         self.increment = mask.select(Simd::splat(0.), self.increment);
         self.value = mask.select(target, self.value);
     }
@@ -179,13 +179,13 @@ where
     }
 
     #[inline]
-    pub fn set_val_instantly(&mut self, target: Float<N>, mask: &TMask<N>) {
+    pub fn set_val_instantly(&mut self, target: Float<N>, mask: TMask<N>) {
         self.target = mask.select(target, self.target);
         self.current = mask.select(target, self.current);
     }
 
     #[inline]
-    pub fn set_target(&mut self, target: Float<N>, mask: &TMask<N>) {
+    pub fn set_target(&mut self, target: Float<N>, mask: TMask<N>) {
         self.target = mask.select(target, self.target);
     }
 }
