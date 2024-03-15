@@ -311,6 +311,8 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
     splat_stereo(*split_stereo(vector).get_unchecked(index))
 }
 
+
+
 pub trait MaskAny {
     fn any(&self) -> bool;
 }
@@ -321,5 +323,27 @@ where
 {
     fn any(&self) -> bool {
         (*self).any()
+    }
+}
+
+pub trait MaskSelect: SimdFloat {
+    fn select_or(self, mask: Self::Mask, or: Self) -> Self;
+}
+
+impl<const N: usize> MaskSelect for Simd<f32, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn select_or(self, mask: Self::Mask, or: Self) -> Self {
+        mask.select(self, or)
+    }
+}
+
+impl<const N: usize> MaskSelect for Simd<f64, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn select_or(self, mask: Self::Mask, or: Self) -> Self {
+        mask.select(self, or)
     }
 }
