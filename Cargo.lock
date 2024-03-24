@@ -60,9 +60,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "backtrace"
-version = "0.3.69"
+version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2089b7e3f35b9dd2d0ed921ead4f6d318c27680d4a5bd167b3ee120edb105837"
+checksum = "26b05800d2e817c8b3b4b54abd461726265fa9789ae34330622f2db9ee696f9d"
 dependencies = [
  "addr2line",
  "cc",
@@ -115,7 +115,7 @@ checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
 [[package]]
 name = "core_simd"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#50e8ae892d00f216fa920272a23204cd8c990265"
+source = "git+https://github.com/rust-lang/portable-simd.git#cff979eec1ac0473fc4960ee6cde462c6aeda824"
 
 [[package]]
 name = "crossbeam"
@@ -278,7 +278,7 @@ dependencies = [
 [[package]]
 name = "nih_plug"
 version = "0.0.0"
-source = "git+https://github.com/robbert-vdh/nih-plug.git#245add6530f1c7d83fea5e23636145d982af4d66"
+source = "git+https://github.com/robbert-vdh/nih-plug.git#bb274976ca138289436b0bfa209b2c8c13244225"
 dependencies = [
  "anyhow",
  "anymap",
@@ -309,7 +309,7 @@ dependencies = [
 [[package]]
 name = "nih_plug_derive"
 version = "0.1.0"
-source = "git+https://github.com/robbert-vdh/nih-plug.git#245add6530f1c7d83fea5e23636145d982af4d66"
+source = "git+https://github.com/robbert-vdh/nih-plug.git#bb274976ca138289436b0bfa209b2c8c13244225"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -527,7 +527,7 @@ checksum = "7eb0b34b42edc17f6b7cac84a52a1c5f0e1bb2227e997ca9011ea3dd34e8610b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.53",
+ "syn 2.0.55",
 ]
 
 [[package]]
@@ -561,7 +561,7 @@ checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 [[package]]
 name = "std_float"
 version = "0.1.0"
-source = "git+https://github.com/rust-lang/portable-simd.git#50e8ae892d00f216fa920272a23204cd8c990265"
+source = "git+https://github.com/rust-lang/portable-simd.git#cff979eec1ac0473fc4960ee6cde462c6aeda824"
 dependencies = [
  "core_simd",
 ]
@@ -579,9 +579,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.53"
+version = "2.0.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7383cd0e49fff4b6b90ca5670bfd3e9d6a733b3f90c686605aa7eec8c4996032"
+checksum = "002a1b3dbf967edfafc32655d0f377ab0bb7b994aa1d32c8cc7e9b8bf3ebb8f0"
 dependencies = [
  "proc-macro2",
  "quote",
