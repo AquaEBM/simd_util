@@ -1,4 +1,4 @@
-#![feature(portable_simd, stdarch_x86_avx512, unchecked_math)]
+#![feature(portable_simd, stdarch_x86_avx512)]
 
 cfg_if::cfg_if! {
 
