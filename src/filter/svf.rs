@@ -67,12 +67,7 @@ where
 
     /// call this if you intend to later output _only_ low-shelving filter shapes
     #[inline]
-    pub fn set_params_low_shelving(
-        &mut self,
-        w_c: Float<N>,
-        res: Float<N>,
-        gain: Float<N>,
-    ) {
+    pub fn set_params_low_shelving(&mut self, w_c: Float<N>, res: Float<N>, gain: Float<N>) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
         self.set_values(g / m2.sqrt(), res, m2);
@@ -80,24 +75,14 @@ where
 
     /// call this if you intend to later output _only_ band-shelving filter shapes
     #[inline]
-    pub fn set_params_band_shelving(
-        &mut self,
-        w_c: Float<N>,
-        res: Float<N>,
-        gain: Float<N>,
-    ) {
+    pub fn set_params_band_shelving(&mut self, w_c: Float<N>, res: Float<N>, gain: Float<N>) {
         let g = Self::g(w_c);
         self.set_values(g, res / gain.sqrt(), gain);
     }
 
     /// call this if you intend to later output _only_ high-shelving filter shapes
     #[inline]
-    pub fn set_params_high_shelving(
-        &mut self,
-        w_c: Float<N>,
-        res: Float<N>,
-        gain: Float<N>,
-    ) {
+    pub fn set_params_high_shelving(&mut self, w_c: Float<N>, res: Float<N>, gain: Float<N>) {
         let m2 = gain.sqrt();
         let g = Self::g(w_c);
         self.set_values(g * m2.sqrt(), res, m2);
@@ -110,13 +95,7 @@ where
     }
 
     #[inline]
-    fn set_values_smoothed(
-        &mut self,
-        g: Float<N>,
-        res: Float<N>,
-        gain: Float<N>,
-        inc: Float<N>,
-    ) {
+    fn set_values_smoothed(&mut self, g: Float<N>, res: Float<N>, gain: Float<N>, inc: Float<N>) {
         self.k.set_target(gain, inc);
         self.g.set_target(g, inc);
         self.r.set_target(res, inc);
@@ -284,9 +263,7 @@ where
         }
     }
 
-    pub fn get_update_function(
-        mode: FilterMode,
-    ) -> fn(&mut Self, Float<N>, Float<N>, Float<N>) {
+    pub fn get_update_function(mode: FilterMode) -> fn(&mut Self, Float<N>, Float<N>, Float<N>) {
         use FilterMode::*;
 
         match mode {

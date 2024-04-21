@@ -39,8 +39,8 @@ where
 {
     // optimised into constants, hopefully
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
-    let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
-    Simd::from_bits((i + max_finite_exp << mantissa_bits).cast())
+    let exponent_bias = Simd::splat(f32::MAX_EXP - 1);
+    Simd::from_bits(((i + exponent_bias) << mantissa_bits).cast())
 }
 
 /// "cheap" 2 ^ x approximation, Unspecified results if v is
@@ -56,10 +56,10 @@ where
     // LN_2^n / n!
     let a = Simd::splat(1.);
     let b = Simd::splat(LN_2);
-    let c = Simd::splat(0.2402265069591007);
-    let d = Simd::splat(0.005550410866482157);
-    let e = Simd::splat(0.009618129107628477);
-    let f = Simd::splat(0.001333355814642844);
+    let c = Simd::splat(0.240_226_5);
+    let d = Simd::splat(0.005_550_411);
+    let e = Simd::splat(0.009_618_129);
+    let f = Simd::splat(0.001_333_355_8);
 
     let rounded = v.round();
 
@@ -91,8 +91,8 @@ where
 {
     // optimised into constants, hopefully
     let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
-    let max_finite_exp = Simd::splat(f32::MAX_EXP - 1);
-    (x.to_bits().cast() >> mantissa_bits) - max_finite_exp
+    let exponent_bias = Simd::splat(f32::MAX_EXP - 1);
+    (x.to_bits().cast() >> mantissa_bits) - exponent_bias
 }
 
 /// "cheap" log2 approximation. Unspecified results is v is

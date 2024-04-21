@@ -82,12 +82,7 @@ where
 
     /// like `Self::set_params` but smoothed
     #[inline]
-    pub fn set_params_smoothed(
-        &mut self,
-        w_c: Float<N>,
-        gain: Float<N>,
-        inc: Float<N>,
-    ) {
+    pub fn set_params_smoothed(&mut self, w_c: Float<N>, gain: Float<N>, inc: Float<N>) {
         self.set_values_smoothed(Self::g(w_c), gain, inc)
     }
 

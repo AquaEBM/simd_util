@@ -77,6 +77,11 @@ where
     Simd::from_array([item; N])
 }
 
+/// Like `Simd::gather_select_unckecked` but with a pointer and using `u32` offsets
+///
+/// # Safety
+///
+/// The same requirements as `Simd::gather_select_unchecked`
 // We're using intrinsics for now because u32 gathers aren't in core::simd (yet?)
 #[inline]
 pub unsafe fn gather_select_unchecked(
@@ -120,6 +125,11 @@ pub unsafe fn gather_select_unchecked(
     }
 }
 
+/// Like `Simd::gather_select_unchecked` but with a pointer, `u32` offsets and all offsets are enabled
+///
+/// # Safety
+///
+/// The same as `Simd::gather_select_unchecked`
 #[inline]
 pub unsafe fn gather_unchecked(pointer: *const f32, index: UInt) -> Float {
     cfg_if! {
@@ -267,7 +277,7 @@ pub fn swap_stereo<T: SimdElement>(v: Simd<T, FLOATS_PER_VECTOR>) -> Simd<T, FLO
     simd_swizzle!(v, FLIP_PAIRS)
 }
 
-/// triangluar panning of a vector of stereo samples, 0 <= pan <= 1
+/// triangluar panning of a vector of stereo samples, given 0 <= pan <= 1
 #[inline]
 pub fn triangular_pan_weights(pan_norm: Float) -> Float {
     const SIGN_MASK: Float = {
@@ -303,6 +313,9 @@ pub fn splat_slot<T: SimdElement>(
     array.get(index).copied().map(splat_stereo)
 }
 
+/// # Safety
+///
+/// `index < STEREO_VOICES_PER_VECTOR` must hold
 #[inline]
 pub unsafe fn splat_slot_unchecked<T: SimdElement>(
     vector: &Simd<T, FLOATS_PER_VECTOR>,
@@ -310,8 +323,6 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
 ) -> Simd<T, FLOATS_PER_VECTOR> {
     splat_stereo(*split_stereo(vector).get_unchecked(index))
 }
-
-
 
 pub trait MaskAny {
     fn any(&self) -> bool;

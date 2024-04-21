@@ -42,7 +42,7 @@ where
 
 impl<const N: usize> LogSmoother<N>
 where
-    LaneCount<N>: SupportedLaneCount
+    LaneCount<N>: SupportedLaneCount,
 {
     #[inline]
     pub fn scale(&mut self, scale: Float<N>) {
