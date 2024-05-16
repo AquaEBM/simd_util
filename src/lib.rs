@@ -375,3 +375,16 @@ where
         self & other
     }
 }
+
+pub trait MaskSplat {
+    fn splat(val: bool) -> Self;
+}
+
+impl<T: MaskElement, const N: usize> MaskSplat for Mask<T, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn splat(val: bool) -> Self {
+        Mask::splat(val)
+    }
+}
