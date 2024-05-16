@@ -329,15 +329,15 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
 }
 
 pub trait MaskAny {
-    fn any(&self) -> bool;
+    fn any(self) -> bool;
 }
 
 impl<T: MaskElement, const N: usize> MaskAny for Mask<T, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    fn any(&self) -> bool {
-        (*self).any()
+    fn any(self) -> bool {
+        self.any()
     }
 }
 
@@ -360,5 +360,18 @@ where
 {
     fn select_or(self, mask: Self::Mask, or: Self) -> Self {
         mask.select(self, or)
+    }
+}
+
+pub trait MaskAnd {
+    fn and(self, other: Self) -> Self;
+}
+
+impl<T: MaskElement, const N: usize> MaskAnd for Mask<T, N>
+where
+    LaneCount<N>: SupportedLaneCount,
+{
+    fn and(self, other: Self) -> Self {
+        self & other
     }
 }
