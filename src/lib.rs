@@ -363,19 +363,6 @@ where
     }
 }
 
-pub trait MaskAnd {
-    fn and(self, other: Self) -> Self;
-}
-
-impl<T: MaskElement, const N: usize> MaskAnd for Mask<T, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    fn and(self, other: Self) -> Self {
-        self & other
-    }
-}
-
 pub trait MaskSplat {
     fn splat(val: bool) -> Self;
 }
