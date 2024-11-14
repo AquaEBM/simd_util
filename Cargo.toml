@@ -11,13 +11,13 @@ edition = "2021"
 core_simd = { git = "https://github.com/rust-lang/portable-simd.git", optional = true }
 std_float = { git = "https://github.com/rust-lang/portable-simd.git", optional = true }
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", optional = true }
-num = { version = "0.4.1", optional = true }
+num = { version = "0.4", optional = true }
 
-cfg-if = "1.0"
+cfg-if = "1"
 
 [features]
 
-# for testing purposes
-# default = ["non_std_simd", "transfer_funcs", "nih_plug"]
-non_std_simd = ["dep:core_simd", "dep:std_float"]
+default = ["std_simd", "transfer_funcs"]
+core_simd_crate = ["dep:core_simd", "dep:std_float"]
+std_simd = []
 transfer_funcs = ["dep:num"]

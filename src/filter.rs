@@ -4,7 +4,7 @@ use ::num::{Complex, Float, One};
 #[cfg(feature = "nih_plug")]
 use ::nih_plug::prelude::Enum;
 
-use super::{math, simd::*, smoothing::*, Float, FLOATS_PER_VECTOR};
+use super::{math, simd::*, smoothing::*, VFloat, FLOATS_PER_VECTOR};
 
 pub mod one_pole;
 pub mod svf;
@@ -15,20 +15,21 @@ pub mod svf;
 /// Specifically, let `x[n]` be the input signal, `y[n]` be the output signal, and `v[n]`
 /// be the internal state.
 ///
-/// This system's difference equation is:
-/// ```ignore
-/// y[n] = x[n] + v[n-1]
-/// v[n] = y[n] + x[n]
-/// ```
-/// Thus, it's transfer function would be:
-/// ```ignore
-/// (z + 1) / (z - 1)
-/// ```
+/// This system's difference equations are:
+///
+/// `y[n] = x[n] + v[n-1]`
+///
+/// `v[n] = y[n] + x[n]`
+///
+/// Transfer function:
+///
+/// `(z + 1) / (z - 1)`
 pub struct Integrator<const N: usize = FLOATS_PER_VECTOR>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    s: Float<N>,
+    s: VFloat<N>,
+    out: VFloat<N>
 }
 
 impl<const N: usize> Integrator<N>
@@ -39,10 +40,14 @@ where
     /// update the system's internal state (`v[n]`),
     /// and return the system's next output (`y[n]`)
     #[inline]
-    pub fn tick(&mut self, sample: Float<N>) -> Float<N> {
-        let output = sample + self.s;
-        self.s = output + sample;
-        output
+    pub fn process(&mut self, x: VFloat<N>) {
+        self.out = x + self.s;
+        self.s = self.out + x;
+    }
+
+    #[inline]
+    pub fn output(&self) -> &VFloat<N> {
+        &self.out
     }
 
     /// Set the internal `v[n]` state to `0.0`
@@ -53,7 +58,7 @@ where
 
     /// Get the current `v[n]` state
     #[inline]
-    pub fn get_current(&self) -> Float<N> {
-        self.s
+    pub fn state(&self) -> &VFloat<N> {
+        &self.s
     }
 }
