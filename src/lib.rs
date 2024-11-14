@@ -14,7 +14,6 @@ pub use std::simd;
 cfg_if! {
     if #[cfg(any(feature = "std_simd", feature = "core_simd_crate"))] {
 
-        pub mod filter;
         pub mod math;
         pub mod smoothing;
         mod util;
