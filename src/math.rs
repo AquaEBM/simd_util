@@ -1,5 +1,6 @@
-use super::simd::{prelude::*, *};
-use core::f32::consts::LN_2;
+use super::*;
+
+use simd::{num::SimdInt, StdFloat};
 
 #[inline]
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
@@ -54,13 +55,13 @@ where
     // optimised into constants, hopefully
     // LN_2^n / n!
     let a = Simd::splat(1.);
-    let b = Simd::splat(LN_2);
+    let b = Simd::splat(core::f32::consts::LN_2);
     let c = Simd::splat(0.240_226_5);
     let d = Simd::splat(0.005_550_411);
     let e = Simd::splat(0.009_618_129);
     let f = Simd::splat(0.001_333_355_8);
 
-    let rounded = v.round();
+    let rounded = map(v, f32::round_ties_even);
 
     let int = fexp2i(unsafe { rounded.to_int_unchecked() }); // very cheap
 

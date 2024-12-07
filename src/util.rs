@@ -1,11 +1,8 @@
 use super::*;
 
-use simd::{prelude::*, *};
+use simd::{f32x2, simd_swizzle, Mask, MaskElement, SimdElement};
 
-use core::{
-    cell::Cell,
-    mem::{size_of, transmute},
-};
+use core::{cell::Cell, mem};
 
 #[cfg(any(target_feature = "avx512f", target_feature = "avx2"))]
 use core::arch::x86_64::*;
@@ -31,7 +28,6 @@ pub type TMask<const N: usize = FLOATS_PER_VECTOR> = Mask<i32, N>;
 /// Convenience function on simd types when specialized functions aren't
 /// available in the standard library, hoping autovectorization compiles this
 /// into an simd instruction
-
 #[inline]
 pub fn map<T: SimdElement, U: SimdElement, const N: usize>(
     v: Simd<T, N>,
@@ -41,19 +37,6 @@ where
     LaneCount<N>: SupportedLaneCount,
 {
     v.to_array().map(f).into()
-}
-
-#[inline]
-pub const fn enclosing_div(n: usize, d: usize) -> usize {
-    (n + d - 1) / d
-}
-
-#[inline]
-pub const fn splat<T: SimdElement, const N: usize>(item: T) -> Simd<T, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    Simd::from_array([item; N])
 }
 
 /// Like `Simd::gather_select_unckecked` but with a pointer and using `u32` offsets
@@ -69,42 +52,33 @@ pub unsafe fn gather_select_unchecked(
     enable: TMask,
     or: VFloat,
 ) -> VFloat {
-    cfg_if! {
+    #[cfg(target_feature = "avx512f")]
+    return _mm512_mask_i32gather_ps(
+        or.into(),
+        enable.to_bitmask() as __mmask16,
+        index.into(),
+        pointer.cast(),
+        4,
+    )
+    .into();
 
-        if #[cfg(target_feature = "avx512f")] {
+    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
+    return _mm256_mask_i32gather_ps(
+        or.into(),
+        pointer,
+        index.into(),
+        mem::transmute(enable), // Why is this __m256, not __m256i? I don't know
+        4,
+    )
+    .into();
 
-            #[cfg(feature = "non_std_simd")]
-            // this is safe because, in core_simd, the mask type is implemented as a bitmask on AVX-512
-            // This obviously doesn't work when importing it directly from the standard library, as it
-            // is precompiled with specific compilation options (that don't enable AVX-512)
-            let bitmask = transmute(enable);
-            #[cfg(not(feature = "non_std_simd"))]
-            let bitmask = enable.to_bitmask() as __mmask16;
-
-            _mm512_mask_i32gather_ps(
-                or.into(),
-                bitmask,
-                index.into(),
-                pointer.cast(),
-                4,
-            ).into()
-
-        } else if #[cfg(target_feature = "avx2")] {
-
-            _mm256_mask_i32gather_ps(
-                or.into(),
-                pointer,
-                index.into(),
-                transmute(enable), // Why is this __m256, not __m256i? I don't know
-                4
-            ).into()
-
-        } else {
-
-            let slice = core::slice::from_raw_parts(pointer, 0);
-            Simd::gather_select_unchecked(slice, enable.cast(), index.cast(), or)
-        }
-    }
+    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
+    return Simd::gather_select_unchecked(
+        core::slice::from_raw_parts(pointer, 0),
+        enable.cast(),
+        index.cast(),
+        or,
+    );
 }
 
 /// Like `Simd::gather_select_unchecked` but with a pointer, `u32` offsets and all offsets are enabled
@@ -114,27 +88,19 @@ pub unsafe fn gather_select_unchecked(
 /// The same as `Simd::gather_select_unchecked`
 #[inline]
 pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
-    cfg_if! {
+    #[cfg(target_feature = "avx512f")]
+    return _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into();
 
-        if #[cfg(target_feature = "avx512f")] {
+    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
+    return _mm256_i32gather_ps(pointer, index.into(), 4).into();
 
-            _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into()
-
-        } else if #[cfg(target_feature = "avx2")] {
-
-            _mm256_i32gather_ps(pointer, index.into(), 4).into()
-
-        } else {
-
-            let slice = core::slice::from_raw_parts(pointer, 0);
-            Simd::gather_select_unchecked(
-                slice,
-                Mask::splat(true),
-                index.cast(),
-                VFloat::splat(0.)
-            )
-        }
-    }
+    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
+    return Simd::gather_select_unchecked(
+        core::slice::from_raw_parts(pointer, 0),
+        Mask::splat(true),
+        index.cast(),
+        VFloat::splat(0.),
+    );
 }
 
 #[inline]
@@ -145,23 +111,23 @@ pub fn sum_to_stereo_sample(x: VFloat) -> f32x2 {
             if #[cfg(any(target_feature = "avx512f"))] {
 
                 // FLOATS_PER_VECTOR = 16
-                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
-                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = transmute(left1 + right1);
-                let [left3, right3]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = transmute(left2 + right2);
+                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
+                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(left1 + right1);
+                let [left3, right3]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = mem::transmute(left2 + right2);
 
                 left3 + right3
 
             } else if #[cfg(any(target_feature = "avx"))] {
 
                 // FLOATS_PER_VECTOR = 8
-                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
-                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = transmute(left1 + right1);
+                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
+                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(left1 + right1);
                 left2 + right2
 
             } else if #[cfg(any(target_feature = "sse", target_feature = "neon"))] {
 
                 // FLOATS_PER_VECTOR = 4
-                let [left, right]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = transmute(x);
+                let [left, right]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
                 left + right
 
             } else {
@@ -187,7 +153,7 @@ pub fn split_stereo<T: SimdElement>(
     vector: &Simd<T, FLOATS_PER_VECTOR>,
 ) -> &[Simd<T, 2>; STEREO_VOICES_PER_VECTOR] {
     // SAFETY: see above
-    unsafe { transmute(vector) }
+    unsafe { mem::transmute(vector) }
 }
 
 #[inline]
@@ -195,7 +161,7 @@ pub fn split_stereo_slice<T: SimdElement>(
     vectors: &[Simd<T, FLOATS_PER_VECTOR>],
 ) -> &[[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]] {
     // SAFETY: see above
-    unsafe { transmute(vectors) }
+    unsafe { mem::transmute(vectors) }
 }
 
 #[inline]
@@ -203,7 +169,7 @@ pub fn split_stereo_mut<T: SimdElement>(
     vector: &mut Simd<T, FLOATS_PER_VECTOR>,
 ) -> &mut [Simd<T, 2>; STEREO_VOICES_PER_VECTOR] {
     // SAFETY: see above
-    unsafe { transmute(vector) }
+    unsafe { mem::transmute(vector) }
 }
 
 #[inline]
@@ -211,7 +177,7 @@ pub fn split_stereo_slice_mut<T: SimdElement>(
     vectors: &mut [Simd<T, FLOATS_PER_VECTOR>],
 ) -> &mut [[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]] {
     // SAFETY: see above
-    unsafe { transmute(vectors) }
+    unsafe { mem::transmute(vectors) }
 }
 
 #[inline]
@@ -219,7 +185,7 @@ pub fn split_stereo_cell<T: SimdElement>(
     vector: &Cell<Simd<T, FLOATS_PER_VECTOR>>,
 ) -> &Cell<[Simd<T, 2>; STEREO_VOICES_PER_VECTOR]> {
     // SAFETY: see above
-    unsafe { transmute(vector) }
+    unsafe { mem::transmute(vector) }
 }
 
 #[inline]
@@ -227,7 +193,7 @@ pub fn split_stereo_cell_slice<T: SimdElement>(
     vectors: &[Cell<Simd<T, FLOATS_PER_VECTOR>>],
 ) -> &[[Cell<Simd<T, 2>>; STEREO_VOICES_PER_VECTOR]] {
     // SAFETY: see above
-    unsafe { transmute(vectors) }
+    unsafe { mem::transmute(vectors) }
 }
 
 #[inline]
