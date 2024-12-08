@@ -11,10 +11,8 @@ edition = "2021"
 core_simd = { git = "https://github.com/rust-lang/portable-simd.git", optional = true }
 std_float = { git = "https://github.com/rust-lang/portable-simd.git", optional = true }
 
-cfg-if = "1"
-
 [features]
 
-default = ["std_simd"]
+default = ["core_simd_crate"]
 core_simd_crate = ["dep:core_simd", "dep:std_float"]
 std_simd = []

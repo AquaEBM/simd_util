@@ -61,6 +61,7 @@ where
     let e = Simd::splat(0.009_618_129);
     let f = Simd::splat(0.001_333_355_8);
 
+    // way faster than v.round()
     let rounded = map(v, f32::round_ties_even);
 
     let int = fexp2i(unsafe { rounded.to_int_unchecked() }); // very cheap

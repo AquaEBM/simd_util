@@ -8,9 +8,9 @@ use core::{cell::Cell, mem};
 use core::arch::x86_64::*;
 
 pub const MAX_VECTOR_WIDTH: usize = {
-    if cfg!(any(target_feature = "avx512f")) {
+    if cfg!(target_feature = "avx512f") {
         64
-    } else if cfg!(any(target_feature = "avx")) {
+    } else if cfg!(target_feature = "avx") {
         32
     } else if cfg!(any(target_feature = "sse", target_feature = "neon")) {
         16
@@ -52,16 +52,15 @@ pub unsafe fn gather_select_unchecked(
     enable: TMask,
     or: VFloat,
 ) -> VFloat {
-    #[cfg(target_feature = "avx512f")]
-    return _mm512_mask_i32gather_ps(
-        or.into(),
-        enable.to_bitmask() as __mmask16,
-        index.into(),
-        pointer.cast(),
-        4,
-    )
-    .into();
 
+    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
+    return Simd::gather_select_unchecked(
+        core::slice::from_raw_parts(pointer, 0),
+        enable.cast(),
+        index.cast(),
+        or,
+    );
+    
     #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
     return _mm256_mask_i32gather_ps(
         or.into(),
@@ -72,13 +71,15 @@ pub unsafe fn gather_select_unchecked(
     )
     .into();
 
-    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
-    return Simd::gather_select_unchecked(
-        core::slice::from_raw_parts(pointer, 0),
-        enable.cast(),
-        index.cast(),
-        or,
-    );
+    #[cfg(target_feature = "avx512f")]
+    return _mm512_mask_i32gather_ps(
+        or.into(),
+        enable.to_bitmask() as __mmask16,
+        index.into(),
+        pointer.cast(),
+        4,
+    )
+    .into();
 }
 
 /// Like `Simd::gather_select_unchecked` but with a pointer, `u32` offsets and all offsets are enabled
@@ -88,11 +89,6 @@ pub unsafe fn gather_select_unchecked(
 /// The same as `Simd::gather_select_unchecked`
 #[inline]
 pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
-    #[cfg(target_feature = "avx512f")]
-    return _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into();
-
-    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
-    return _mm256_i32gather_ps(pointer, index.into(), 4).into();
 
     #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
     return Simd::gather_select_unchecked(
@@ -101,41 +97,37 @@ pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
         index.cast(),
         VFloat::splat(0.),
     );
+
+    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
+    return _mm256_i32gather_ps(pointer, index.into(), 4).into();
+
+    #[cfg(target_feature = "avx512f")]
+    return _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into();
 }
 
 #[inline]
 pub fn sum_to_stereo_sample(x: VFloat) -> f32x2 {
     unsafe {
-        cfg_if! {
 
-            if #[cfg(any(target_feature = "avx512f"))] {
+        #[cfg(any(target_feature = "sse", target_feature = "neon"))]
+        let x = {
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
+            l + r
+        };
 
-                // FLOATS_PER_VECTOR = 16
-                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
-                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(left1 + right1);
-                let [left3, right3]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = mem::transmute(left2 + right2);
+        #[cfg(target_feature = "avx")]
+        let x = {
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(x);
+            l + r
+        };
 
-                left3 + right3
+        #[cfg(target_feature = "avx512f")]
+        let x = {
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = mem::transmute(x);
+            l + r
+        };
 
-            } else if #[cfg(any(target_feature = "avx"))] {
-
-                // FLOATS_PER_VECTOR = 8
-                let [left1, right1]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
-                let [left2, right2]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(left1 + right1);
-                left2 + right2
-
-            } else if #[cfg(any(target_feature = "sse", target_feature = "neon"))] {
-
-                // FLOATS_PER_VECTOR = 4
-                let [left, right]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
-                left + right
-
-            } else {
-
-                // FLOATS_PER_VECTOR = 2
-                x
-            }
-        }
+        x
     }
 }
 
