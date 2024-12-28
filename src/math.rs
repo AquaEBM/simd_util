@@ -2,7 +2,11 @@ use super::*;
 
 use simd::{num::SimdInt, StdFloat};
 
+const MANTISSA_BITS: u32 = f32::MANTISSA_DIGITS - 1;
+const ONE_BITS: u32 = 1f32.to_bits();
+
 #[inline]
+/// lerp innit
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
@@ -10,118 +14,126 @@ where
     t.mul_add(b - a, a)
 }
 
-// efficient tan(x/2) approximation
+/// "Efficient" `tan(x/2)` approximation. Unspecified results if `|x| >= pi`
 #[inline]
 pub fn tan_half_x<const N: usize>(x: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into constants, hopefully
-    let na = Simd::splat(1. / 15120.);
-    let nb = Simd::splat(-1. / 36.);
-    let nc = Simd::splat(1.);
-    let da = Simd::splat(1. / 504.);
-    let db = Simd::splat(-2. / 9.);
-    let dc = Simd::splat(2.);
+    // constants
+    let n5 = Simd::splat(0.000_066_137_57);
+    let n3 = Simd::splat(-0.027_777_778);
+    let n1 = Simd::splat(1.);
+    let d4 = Simd::splat(0.001_984_127);
+    let d2 = Simd::splat(-0.222_222_22);
+    let d0 = Simd::splat(2.);
 
     let x2 = x * x;
-    let num = x * x2.mul_add(x2.mul_add(na, nb), nc);
-    let den = x2.mul_add(x2.mul_add(da, db), dc);
+    let den = x2.mul_add(x2.mul_add(d4, d2), d0);
+    let xden = x / den;
+    let num = x2.mul_add(x2.mul_add(n5, n3), n1);
 
-    num / den
+    num * xden
 }
 
-/// Unspecified results for i not in [-126 ; 126]
+/// Returns `2^i` as a `float`.
+///
+/// Unspecified results if `-126 <= i <= 127` doesn't hold.
 #[inline]
 pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into constants, hopefully
-    let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
-    let exponent_bias = Simd::splat(f32::MAX_EXP - 1);
-    Simd::from_bits(((i + exponent_bias) << mantissa_bits).cast())
+    Simd::from_bits((i.cast() << MANTISSA_BITS) + Simd::splat(ONE_BITS))
 }
 
-/// "cheap" 2 ^ x approximation, Unspecified results if v is
-/// NAN, inf or subnormal. Taylor series already works pretty well here since
-/// the polynomial approximation we need here is in the interval (-0.5, 0.5)
-/// (which is small and centered at zero)
+/// "Efficient" `exp2` approximation. Unspecified results if `-126 <= v <= 127` doesn't hold.
+///
+/// # Safety
+///
+/// `v` must be non-NAN, finite, and in the range `[-2^31; 2^31 - 1]`
 #[inline]
-pub fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
+pub unsafe fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into constants, hopefully
-    // LN_2^n / n!
-    let a = Simd::splat(1.);
-    let b = Simd::splat(core::f32::consts::LN_2);
-    let c = Simd::splat(0.240_226_5);
-    let d = Simd::splat(0.005_550_411);
-    let e = Simd::splat(0.009_618_129);
-    let f = Simd::splat(0.001_333_355_8);
+    // Taylor series already works pretty well here since
+    // the polynomial approximation we need is only evaluated in [-0.5, 0.5]
+    // (which is small and centered at zero)
 
-    // way faster than v.round()
+    // LN_2^n / n!
+    // constants
+    let a1 = Simd::splat(core::f32::consts::LN_2);
+    let a2 = Simd::splat(0.240_226_5);
+    let a3 = Simd::splat(0.055_504_11);
+    let a4 = Simd::splat(0.009_618_129);
+    let a5 = Simd::splat(0.001_333_355_8);
+
+    // for some reason, v.round() optimizes badly, but this doesn't
     let rounded = map(v, f32::round_ties_even);
 
-    let int = fexp2i(unsafe { rounded.to_int_unchecked() }); // very cheap
+    let int = fexp2i(unsafe { rounded.to_int_unchecked() });
 
     let x = v - rounded; // is always in [-0.5 ; 0.5]
 
-    let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(x.mul_add(f, e), d), c), b), a);
-    int * y
+    let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(a5, a4), a3), a2), a1);
+    int.mul_add(x * y, int)
 }
 
-/// This returns 2^(`semitones`/12)
+/// Returns [`fast_exp2(semitones / 12)`](fast_exp2)
+///
+/// # Safety
+///
+/// Same conditions as [`fast_exp2`]
 #[inline]
-pub fn semitones_to_ratio<const N: usize>(semitones: Simd<f32, N>) -> Simd<f32, N>
+pub unsafe fn semitones_to_ratio<const N: usize>(semitones: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into a constant, hopefully
-    let ratio = Simd::splat(1. / 12.);
-    exp2(semitones * ratio)
+    const RATIO: f32 = 1. / 12.;
+    unsafe { exp2(semitones * Simd::splat(RATIO)) }
 }
 
-/// Compute floor(log2(x)) as an Int. Unspecified results
-/// if x is NAN, inf, negative or subnormal
+/// Returns `floor(log2(x))` as an `int`. Unspecified results
+/// if `x` is `NAN`, `inf` or non-positive.
 #[inline]
 pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into constants, hopefully
-    let mantissa_bits = Simd::splat(f32::MANTISSA_DIGITS as i32 - 1);
-    let exponent_bias = Simd::splat(f32::MAX_EXP - 1);
-    (x.to_bits().cast() >> mantissa_bits) - exponent_bias
+    ((x.to_bits() - Simd::splat(ONE_BITS)) >> MANTISSA_BITS).cast()
 }
 
-/// "cheap" log2 approximation. Unspecified results is v is
-/// NAN, inf, negative, or subnormal.
+/// "Efficient" `log2` approximation. Unspecified results if `v` is
+/// `NAN`, `inf` or non-positive.
 #[inline]
 pub fn log2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into constants, hopefully
-    let a = Simd::splat(-1819. / 651.);
+    // constants
+    let a = Simd::splat(-2.632_416_7);
     let b = Simd::splat(5.);
-    let c = Simd::splat(-10. / 3.);
-    let d = Simd::splat(10. / 7.);
-    let e = Simd::splat(-1. / 3.);
-    let f = Simd::splat(1. / 31.);
-    let mantissa_mask = Simd::splat((1 << (f32::MANTISSA_DIGITS - 1)) - 1);
-    let zero_exponent = Simd::splat(1f32.to_bits());
+    let c = Simd::splat(-3.333_333_3);
+    let d = Simd::splat(1.428_571_5);
+    let e = Simd::splat(-0.333_333_34);
+    let f = Simd::splat(0.032_258_064);
 
     let log_exponent = ilog2f(v).cast();
-    let x = Simd::<f32, N>::from_bits(v.to_bits() & mantissa_mask | zero_exponent);
+    let x = Simd::<f32, N>::from_bits(
+        v.to_bits() & Simd::splat((1 << MANTISSA_BITS) - 1) | Simd::splat(ONE_BITS),
+    );
 
     let y = x.mul_add(x.mul_add(x.mul_add(x.mul_add(x.mul_add(f, e), d), c), b), a);
     log_exponent + y
 }
 
+/// Returns `fast_exp2(fast_log2(base) * exp)`, or, approximately, `base^exp`
+/// # Safety
+///
+/// Same conditions as [`fast_exp2`].
 #[inline]
-pub fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
+pub unsafe fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
@@ -133,9 +145,8 @@ pub fn flp_to_fxp<const N: usize>(x: Simd<f32, N>) -> Simd<u32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into a constant, hopefully
-    let max = Simd::splat((1u64 << u32::BITS) as f32);
-    unsafe { (x * max).to_int_unchecked() }
+    const RATIO: f32 = (1u64 << u32::BITS) as f32;
+    unsafe { (x * Simd::splat(RATIO)).to_int_unchecked() }
 }
 
 #[inline]
@@ -143,7 +154,6 @@ pub fn fxp_to_flp<const N: usize>(x: Simd<u32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    // optimised into a constant, hopefully
-    let ratio = Simd::splat(1. / (1u64 << u32::BITS) as f32);
-    x.cast() * ratio
+    const RATIO: f32 = 1. / (1u64 << u32::BITS) as f32;
+    x.cast() * Simd::splat(RATIO)
 }

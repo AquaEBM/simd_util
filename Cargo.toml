@@ -13,6 +13,6 @@ std_float = { git = "https://github.com/rust-lang/portable-simd.git", optional =
 
 [features]
 
-default = ["core_simd_crate"]
+default = ["std_simd"]
 core_simd_crate = ["dep:core_simd", "dep:std_float"]
 std_simd = []

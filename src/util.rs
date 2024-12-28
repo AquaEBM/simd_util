@@ -52,7 +52,6 @@ pub unsafe fn gather_select_unchecked(
     enable: TMask,
     or: VFloat,
 ) -> VFloat {
-
     #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
     return Simd::gather_select_unchecked(
         core::slice::from_raw_parts(pointer, 0),
@@ -60,7 +59,7 @@ pub unsafe fn gather_select_unchecked(
         index.cast(),
         or,
     );
-    
+
     #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
     return _mm256_mask_i32gather_ps(
         or.into(),
@@ -89,7 +88,6 @@ pub unsafe fn gather_select_unchecked(
 /// The same as `Simd::gather_select_unchecked`
 #[inline]
 pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
-
     #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
     return Simd::gather_select_unchecked(
         core::slice::from_raw_parts(pointer, 0),
@@ -108,22 +106,21 @@ pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
 #[inline]
 pub fn sum_to_stereo_sample(x: VFloat) -> f32x2 {
     unsafe {
-
         #[cfg(any(target_feature = "sse", target_feature = "neon"))]
         let x = {
-            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }> ; 2] = mem::transmute(x);
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 2 }>; 2] = mem::transmute(x);
             l + r
         };
 
         #[cfg(target_feature = "avx")]
         let x = {
-            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }> ; 2] = mem::transmute(x);
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 4 }>; 2] = mem::transmute(x);
             l + r
         };
 
         #[cfg(target_feature = "avx512f")]
         let x = {
-            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }> ; 2] = mem::transmute(x);
+            let [l, r]: [Simd<f32, { FLOATS_PER_VECTOR / 8 }>; 2] = mem::transmute(x);
             l + r
         };
 

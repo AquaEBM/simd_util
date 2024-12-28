@@ -12,12 +12,9 @@ pub mod simd {
 pub use std::simd;
 
 use simd::{
-    LaneCount,
-    SupportedLaneCount,
-    Simd,
     num::{SimdFloat, SimdUint},
+    LaneCount, Simd, SupportedLaneCount,
 };
-
 
 pub mod math;
 pub mod smoothing;
