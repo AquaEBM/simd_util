@@ -1,6 +1,6 @@
 use super::*;
 
-use simd::{num::SimdInt, StdFloat};
+use simd::{num::{SimdInt, SimdFloat}, StdFloat};
 
 const MANTISSA_BITS: u32 = f32::MANTISSA_DIGITS - 1;
 const ONE_BITS: u32 = 1f32.to_bits();
@@ -51,7 +51,7 @@ where
 ///
 /// # Safety
 ///
-/// `v` must be non-NAN, finite, and in the range `[-2^31; 2^31 - 1]`
+/// `v` must be non-NAN, finite, and in the range `[i32::MIN ; i32::MAX]`
 #[inline]
 pub unsafe fn exp2<const N: usize>(v: Simd<f32, N>) -> Simd<f32, N>
 where
@@ -80,11 +80,11 @@ where
     int.mul_add(x * y, int)
 }
 
-/// Returns [`fast_exp2(semitones / 12)`](fast_exp2)
+/// Returns [`fast_exp2(semitones / 12)`](exp2)
 ///
 /// # Safety
 ///
-/// Same conditions as [`fast_exp2`]
+/// Same conditions as [`exp2`]
 #[inline]
 pub unsafe fn semitones_to_ratio<const N: usize>(semitones: Simd<f32, N>) -> Simd<f32, N>
 where
@@ -128,7 +128,7 @@ where
     log_exponent + y
 }
 
-/// Returns `fast_exp2(fast_log2(base) * exp)`, or, approximately, `base^exp`
+/// Returns `exp2(log2(base) * exp)`, or, approximately, `base^exp`
 /// # Safety
 ///
 /// Same conditions as [`fast_exp2`].
