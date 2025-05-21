@@ -137,7 +137,8 @@ pub unsafe fn pow<const N: usize>(base: Simd<f32, N>, exp: Simd<f32, N>) -> Simd
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    exp2(log2(base) * exp)
+    let exp = log2(base) * exp;
+    unsafe { exp2(exp) }
 }
 
 #[inline]

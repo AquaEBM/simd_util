@@ -1,6 +1,6 @@
 use super::*;
 
-use simd::{f32x2, simd_swizzle, Mask, MaskElement, SimdElement};
+use simd::{Mask, MaskElement, SimdElement, f32x2, simd_swizzle};
 
 use core::{cell::Cell, mem};
 
@@ -52,33 +52,35 @@ pub unsafe fn gather_select_unchecked(
     enable: TMask,
     or: VFloat,
 ) -> VFloat {
-    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
-    return Simd::gather_select_unchecked(
-        core::slice::from_raw_parts(pointer, 0),
-        enable.cast(),
-        index.cast(),
-        or,
-    );
+    unsafe {
+        #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
+        return Simd::gather_select_unchecked(
+            core::slice::from_raw_parts(pointer, 0),
+            enable.cast(),
+            index.cast(),
+            or,
+        );
 
-    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
-    return _mm256_mask_i32gather_ps(
-        or.into(),
-        pointer,
-        index.into(),
-        mem::transmute(enable), // Why is this __m256, not __m256i? I don't know
-        4,
-    )
-    .into();
+        #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
+        return _mm256_mask_i32gather_ps(
+            or.into(),
+            pointer,
+            index.into(),
+            mem::transmute(enable), // Why is this __m256, not __m256i? I don't know
+            4,
+        )
+        .into();
 
-    #[cfg(target_feature = "avx512f")]
-    return _mm512_mask_i32gather_ps(
-        or.into(),
-        enable.to_bitmask() as __mmask16,
-        index.into(),
-        pointer.cast(),
-        4,
-    )
-    .into();
+        #[cfg(target_feature = "avx512f")]
+        return _mm512_mask_i32gather_ps(
+            or.into(),
+            enable.to_bitmask() as __mmask16,
+            index.into(),
+            pointer.cast(),
+            4,
+        )
+        .into();
+    }
 }
 
 /// Like `Simd::gather_select_unchecked` but with a pointer, `u32` offsets and all offsets are enabled
@@ -88,19 +90,21 @@ pub unsafe fn gather_select_unchecked(
 /// The same as `Simd::gather_select_unchecked`
 #[inline]
 pub unsafe fn gather_unchecked(pointer: *const f32, index: VUInt) -> VFloat {
-    #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
-    return Simd::gather_select_unchecked(
-        core::slice::from_raw_parts(pointer, 0),
-        Mask::splat(true),
-        index.cast(),
-        VFloat::splat(0.),
-    );
+    unsafe {
+        #[cfg(not(any(target_feature = "avx512f", target_feature = "avx2")))]
+        return Simd::gather_select_unchecked(
+            core::slice::from_raw_parts(pointer, 0),
+            Mask::splat(true),
+            index.cast(),
+            VFloat::splat(0.),
+        );
 
-    #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
-    return _mm256_i32gather_ps(pointer, index.into(), 4).into();
+        #[cfg(all(not(target_feature = "avx512f"), target_feature = "avx2"))]
+        return _mm256_i32gather_ps(pointer, index.into(), 4).into();
 
-    #[cfg(target_feature = "avx512f")]
-    return _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into();
+        #[cfg(target_feature = "avx512f")]
+        return _mm512_i32gather_ps(index.into(), pointer.cast(), 4).into();
+    }
 }
 
 #[inline]
@@ -262,7 +266,8 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
     vector: &Simd<T, FLOATS_PER_VECTOR>,
     index: usize,
 ) -> Simd<T, FLOATS_PER_VECTOR> {
-    splat_stereo(*split_stereo(vector).get_unchecked(index))
+    let stereo_samples = split_stereo(vector);
+    splat_stereo(*unsafe { stereo_samples.get_unchecked(index) })
 }
 
 pub trait MaskAny {
