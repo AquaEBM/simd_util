@@ -1,12 +1,15 @@
 use super::*;
 
-use simd::{num::{SimdInt, SimdFloat}, StdFloat};
+use simd::{
+    StdFloat,
+    num::{SimdFloat, SimdInt},
+};
 
 const MANTISSA_BITS: u32 = f32::MANTISSA_DIGITS - 1;
 const ONE_BITS: u32 = 1f32.to_bits();
 
-#[inline]
 /// lerp innit
+#[inline]
 pub fn lerp<const N: usize>(a: Simd<f32, N>, b: Simd<f32, N>, t: Simd<f32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
@@ -23,7 +26,6 @@ where
     // constants
     let n5 = Simd::splat(0.000_066_137_57);
     let n3 = Simd::splat(-0.027_777_778);
-    let n1 = Simd::splat(1.);
     let d4 = Simd::splat(0.001_984_127);
     let d2 = Simd::splat(-0.222_222_22);
     let d0 = Simd::splat(2.);
@@ -31,9 +33,8 @@ where
     let x2 = x * x;
     let den = x2.mul_add(x2.mul_add(d4, d2), d0);
     let xden = x / den;
-    let num = x2.mul_add(x2.mul_add(n5, n3), n1);
 
-    num * xden
+    xden.mul_add(x2 * x2.mul_add(n5, n3), xden)
 }
 
 /// Returns `2^i` as a `float`.
@@ -44,7 +45,7 @@ pub fn fexp2i<const N: usize>(i: Simd<i32, N>) -> Simd<f32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    Simd::from_bits((i.cast() << MANTISSA_BITS) + Simd::splat(ONE_BITS))
+    Simd::from_bits((i.cast::<u32>() << MANTISSA_BITS) + Simd::splat(ONE_BITS))
 }
 
 /// "Efficient" `exp2` approximation. Unspecified results if `-126 <= v <= 127` doesn't hold.
@@ -69,7 +70,7 @@ where
     let a4 = Simd::splat(0.009_618_129);
     let a5 = Simd::splat(0.001_333_355_8);
 
-    // for some reason, v.round() optimizes badly, but this doesn't
+    // TODO: https://github.com/rust-lang/portable-simd/issues/390
     let rounded = map(v, f32::round_ties_even);
 
     let int = fexp2i(unsafe { rounded.to_int_unchecked() });
@@ -101,7 +102,7 @@ pub fn ilog2f<const N: usize>(x: Simd<f32, N>) -> Simd<i32, N>
 where
     LaneCount<N>: SupportedLaneCount,
 {
-    ((x.to_bits() - Simd::splat(ONE_BITS)) >> MANTISSA_BITS).cast()
+    ((x.to_bits() - Simd::splat(ONE_BITS)) >> MANTISSA_BITS).cast::<i32>()
 }
 
 /// "Efficient" `log2` approximation. Unspecified results if `v` is

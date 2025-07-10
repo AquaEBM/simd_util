@@ -1,6 +1,6 @@
 use super::*;
 
-use simd::{Mask, MaskElement, SimdElement, f32x2, simd_swizzle};
+use simd::{Mask, SimdElement, f32x2, simd_swizzle};
 
 use core::{cell::Cell, mem};
 
@@ -268,52 +268,4 @@ pub unsafe fn splat_slot_unchecked<T: SimdElement>(
 ) -> Simd<T, FLOATS_PER_VECTOR> {
     let stereo_samples = split_stereo(vector);
     splat_stereo(*unsafe { stereo_samples.get_unchecked(index) })
-}
-
-pub trait MaskAny {
-    fn any(self) -> bool;
-}
-
-impl<T: MaskElement, const N: usize> MaskAny for Mask<T, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    fn any(self) -> bool {
-        self.any()
-    }
-}
-
-pub trait MaskSelect: SimdFloat {
-    fn select_or(self, mask: Self::Mask, or: Self) -> Self;
-}
-
-impl<const N: usize> MaskSelect for Simd<f32, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    fn select_or(self, mask: Self::Mask, or: Self) -> Self {
-        mask.select(self, or)
-    }
-}
-
-impl<const N: usize> MaskSelect for Simd<f64, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    fn select_or(self, mask: Self::Mask, or: Self) -> Self {
-        mask.select(self, or)
-    }
-}
-
-pub trait MaskSplat {
-    fn splat(val: bool) -> Self;
-}
-
-impl<T: MaskElement, const N: usize> MaskSplat for Mask<T, N>
-where
-    LaneCount<N>: SupportedLaneCount,
-{
-    fn splat(val: bool) -> Self {
-        Mask::splat(val)
-    }
 }
